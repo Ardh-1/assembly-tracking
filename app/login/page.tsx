@@ -15,15 +15,9 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-
-    const result = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    })
-
+    const result = await signIn('credentials', { email, password, redirect: false })
     if (result?.error) {
-      setError('Email atau password salah. Silakan coba lagi.')
+      setError('Email atau password salah.')
       setLoading(false)
     } else {
       router.push('/dashboard')
@@ -32,9 +26,9 @@ export default function LoginPage() {
 
   const loginAs = (role: string) => {
     const creds: Record<string, { email: string; password: string }> = {
-      admin: { email: 'admin@factory.com', password: 'admin123' },
+      admin:      { email: 'admin@factory.com',      password: 'admin123' },
       supervisor: { email: 'supervisor@factory.com', password: 'supervisor123' },
-      operator: { email: 'operator1@factory.com', password: 'operator123' },
+      operator:   { email: 'operator1@factory.com',  password: 'operator123' },
     }
     setEmail(creds[role].email)
     setPassword(creds[role].password)
@@ -46,80 +40,52 @@ export default function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0a0e1a 0%, #0f172a 50%, #0a0e1a 100%)',
+      background: 'var(--bg)',
       padding: '1rem',
-      position: 'relative',
-      overflow: 'hidden',
     }}>
-      {/* Background decoration */}
-      <div style={{
-        position: 'absolute', top: '10%', left: '10%',
-        width: '300px', height: '300px',
-        background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)',
-        borderRadius: '50%', pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '10%', right: '10%',
-        width: '400px', height: '400px',
-        background: 'radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%)',
-        borderRadius: '50%', pointerEvents: 'none',
-      }} />
+      <div style={{ width: '100%', maxWidth: '360px' }}>
 
-      <div style={{ width: '100%', maxWidth: '420px', position: 'relative' }}>
-        {/* Logo / Brand */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        {/* Brand */}
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '72px', height: '72px', borderRadius: '18px',
-            background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
-            boxShadow: '0 8px 32px rgba(59,130,246,0.35)',
-            marginBottom: '1rem', fontSize: '2rem',
-          }}>
-            🏭
-          </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#e8eef7', marginBottom: '0.25rem' }}>
+            width: '48px', height: '48px', borderRadius: '10px',
+            background: 'var(--blue-dim)',
+            border: '1px solid rgba(56,139,253,0.3)',
+            fontSize: '1.5rem', marginBottom: '0.75rem',
+          }}>🏭</div>
+          <h1 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.25rem' }}>
             AssemblyTrack
           </h1>
-          <p style={{ color: '#8ba0c0', fontSize: '0.9rem' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             System Pelacakan Lini Perakitan
           </p>
         </div>
 
-        {/* Login Card */}
-        <div style={{
-          background: '#1a2235',
-          border: '1px solid #2a3a5c',
-          borderRadius: '16px',
-          padding: '2rem',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
-        }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#e8eef7', marginBottom: '1.5rem' }}>
-            Masuk ke Akun Anda
-          </h2>
-
+        {/* Card */}
+        <div className="card" style={{ padding: '1.5rem' }}>
           {error && (
-            <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-              <span>⚠️</span>
-              <span>{error}</span>
+            <div className="alert alert-error" style={{ marginBottom: '1rem', fontSize: '0.75rem' }}>
+              <span>⚠</span><span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-group" style={{ marginBottom: '1rem' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <div>
               <label className="label" htmlFor="email">Email</label>
               <input
                 id="email"
                 type="email"
                 className="input"
-                placeholder="operator@factory.com"
+                placeholder="user@factory.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 required
                 autoComplete="email"
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <div>
               <label className="label" htmlFor="password">Password</label>
               <input
                 id="password"
@@ -127,7 +93,7 @@ export default function LoginPage() {
                 className="input"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
               />
@@ -136,47 +102,43 @@ export default function LoginPage() {
             <button
               type="submit"
               className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center', padding: '0.8rem' }}
+              style={{ width: '100%', padding: '0.625rem', marginTop: '0.25rem' }}
               disabled={loading}
             >
               {loading ? (
-                <>
-                  <span style={{
-                    width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: 'white', borderRadius: '50%',
-                    display: 'inline-block', animation: 'spin 0.8s linear infinite',
-                  }} />
-                  Memproses...
-                </>
-              ) : (
-                '🔐 Masuk'
-              )}
+                <span style={{
+                  width: '14px', height: '14px',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: 'white', borderRadius: '50%',
+                  display: 'inline-block', animation: 'spin 0.8s linear infinite',
+                }} />
+              ) : 'Masuk'}
             </button>
           </form>
 
-          {/* Quick login buttons for demo */}
-          <div style={{ marginTop: '1.5rem', borderTop: '1px solid #2a3a5c', paddingTop: '1.5rem' }}>
-            <p style={{ fontSize: '0.75rem', color: '#5a728a', textAlign: 'center', marginBottom: '0.75rem' }}>
-              Demo — Login cepat:
+          {/* Demo quick login */}
+          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+            <p style={{ fontSize: '0.6875rem', color: 'var(--text-subtle)', textAlign: 'center', marginBottom: '0.625rem' }}>
+              Demo login cepat
             </p>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {['admin', 'supervisor', 'operator'].map((role) => (
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
+              {['admin', 'supervisor', 'operator'].map(role => (
                 <button
                   key={role}
                   onClick={() => loginAs(role)}
-                  className="btn btn-outline"
-                  style={{ flex: 1, justifyContent: 'center', fontSize: '0.75rem', padding: '0.5rem' }}
+                  className="btn btn-ghost btn-sm"
+                  style={{ flex: 1, fontSize: '0.6875rem' }}
                 >
-                  {role === 'admin' ? '👑' : role === 'supervisor' ? '🔍' : '🔧'}{' '}
-                  {role.charAt(0).toUpperCase() + role.slice(1)}
+                  {role === 'admin' ? '👑' : role === 'supervisor' ? '🔍' : '🔧'}
+                  {' '}{role.charAt(0).toUpperCase() + role.slice(1)}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.75rem', color: '#5a728a' }}>
-          © 2024 AssemblyTrack — Manufacturing Intelligence System
+        <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.6875rem', color: 'var(--text-subtle)' }}>
+          © 2024 AssemblyTrack
         </p>
       </div>
     </div>
