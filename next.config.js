@@ -3,4 +3,6 @@ const nextConfig = {
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
 };
 
-module.exports = nextConfig;
+module.exports = {
+  allowedDevOrigins: ['192.168.18.7', '10.154.110.159'],
+}
