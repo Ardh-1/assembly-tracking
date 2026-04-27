@@ -90,7 +90,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid-cols-auto" style={{ display: 'grid', gap: '1rem', marginBottom: '1.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
         {rtLoading ? (
           Array(4).fill(0).map((_, i) => (
             <div key={i} style={{ height: '88px', borderRadius: '12px' }} className="skeleton" />

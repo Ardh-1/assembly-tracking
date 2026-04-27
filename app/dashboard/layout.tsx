@@ -12,15 +12,9 @@ export default async function DashboardLayout({
   if (!session) redirect('/login')
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="app-shell">
       <Sidebar />
-      <main className="main-content" style={{
-        flex: 1,
-        padding: '1.5rem',
-        overflow: 'auto',
-        background: 'var(--bg-primary)',
-        minWidth: 0,
-      }}>
+      <main className="main-content">
         {children}
       </main>
     </div>

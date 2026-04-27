@@ -18,6 +18,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const userRole = session?.user?.role || 'OPERATOR'
 
   const filteredNav = navItems.filter((item) => item.roles.includes(userRole))
@@ -30,50 +31,26 @@ export default function Sidebar() {
 
   const roleLabel = { ADMIN: 'Administrator', SUPERVISOR: 'Supervisor', OPERATOR: 'Operator' }[userRole]
 
+  const isActive = (href: string) =>
+    pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+
   return (
     <>
-      {/* Overlay untuk mobile (menutup sidebar jika di-klik) */}
-      <div 
-        className={`sidebar-overlay ${!collapsed ? 'open' : ''}`} 
-        onClick={() => setCollapsed(true)} 
-      />
-
-      {/* Mobile top bar */}
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
-        background: '#111827', borderBottom: '1px solid #2a3a5c',
-        padding: '0.75rem 1rem', alignItems: 'center', justifyContent: 'space-between',
-      }} className="mobile-topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '1.25rem' }}>🏭</span>
-          <span style={{ fontWeight: 700, color: '#e8eef7', fontSize: '1rem' }}>AssemblyTrack</span>
-        </div>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          style={{ background: 'none', border: 'none', color: '#8ba0c0', cursor: 'pointer', fontSize: '1.25rem' }}
-        >
-          {collapsed ? '✕' : '☰'}
-        </button>
-      </div>
-
-      {/* Sidebar */}
-      <aside 
-        className={`sidebar-container ${!collapsed ? 'open' : ''}`}
-        style={{
-          width: collapsed ? '72px' : '240px',
-          minHeight: '100vh',
-          background: '#111827',
-          borderRight: '1px solid #2a3a5c',
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'width 0.25s ease, transform 0.3s ease',
-          flexShrink: 0,
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-          overflow: 'hidden',
-        }}
-      >
+      {/* ===== DESKTOP SIDEBAR ===== */}
+      <aside className="desktop-sidebar" style={{
+        width: collapsed ? '72px' : '240px',
+        minHeight: '100vh',
+        background: '#111827',
+        borderRight: '1px solid #2a3a5c',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'width 0.25s ease',
+        flexShrink: 0,
+        position: 'sticky',
+        top: 0,
+        height: '100vh',
+        overflow: 'hidden',
+      }}>
         {/* Brand */}
         <div style={{
           padding: '1.25rem 1rem',
@@ -109,36 +86,32 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav style={{ flex: 1, padding: '0.75rem 0.5rem', overflow: 'auto' }}>
-          {filteredNav.map((item) => {
-            const isActive = pathname === item.href ||
-              (item.href !== '/dashboard' && pathname.startsWith(item.href))
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.6rem 0.75rem',
-                  borderRadius: '8px',
-                  marginBottom: '0.25rem',
-                  textDecoration: 'none',
-                  color: isActive ? '#e8eef7' : '#8ba0c0',
-                  background: isActive ? 'rgba(59,130,246,0.15)' : 'transparent',
-                  borderLeft: isActive ? '3px solid #3b82f6' : '3px solid transparent',
-                  fontWeight: isActive ? 600 : 400,
-                  fontSize: '0.875rem',
-                  transition: 'all 0.15s ease',
-                  overflow: 'hidden',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span>
-                {!collapsed && item.label}
-              </Link>
-            )
-          })}
+          {filteredNav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.6rem 0.75rem',
+                borderRadius: '8px',
+                marginBottom: '0.25rem',
+                textDecoration: 'none',
+                color: isActive(item.href) ? '#e8eef7' : '#8ba0c0',
+                background: isActive(item.href) ? 'rgba(59,130,246,0.15)' : 'transparent',
+                borderLeft: isActive(item.href) ? '3px solid #3b82f6' : '3px solid transparent',
+                fontWeight: isActive(item.href) ? 600 : 400,
+                fontSize: '0.875rem',
+                transition: 'all 0.15s ease',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span>
+              {!collapsed && item.label}
+            </Link>
+          ))}
         </nav>
 
         {/* User info + logout */}
@@ -174,14 +147,63 @@ export default function Sidebar() {
               background: 'none', border: 'none', cursor: 'pointer',
               color: '#8ba0c0', fontSize: '0.8rem', transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { (e.target as any).style.background = 'rgba(239,68,68,0.1)'; (e.target as any).style.color = '#ef4444' }}
-            onMouseLeave={(e) => { (e.target as any).style.background = 'none'; (e.target as any).style.color = '#8ba0c0' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = '#ef4444' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; (e.currentTarget as HTMLButtonElement).style.color = '#8ba0c0' }}
           >
             <span>🚪</span>
             {!collapsed && 'Keluar'}
           </button>
         </div>
       </aside>
+
+      {/* ===== MOBILE TOP BAR ===== */}
+      <div className="mobile-topbar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{
+            width: '32px', height: '32px', borderRadius: '8px',
+            background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem',
+          }}>🏭</div>
+          <div>
+            <div style={{ fontWeight: 800, color: '#e8eef7', fontSize: '0.95rem', lineHeight: 1 }}>AssemblyTrack</div>
+            <div style={{ fontSize: '0.65rem', color: roleColor, fontWeight: 600 }}>{roleLabel}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: `linear-gradient(135deg, ${roleColor}, ${roleColor}88)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '0.75rem', fontWeight: 700, color: 'white',
+          }}>
+            {session?.user?.name?.[0]?.toUpperCase() || '?'}
+          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            style={{
+              background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+              borderRadius: '8px', padding: '0.35rem 0.6rem', color: '#ef4444',
+              fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600,
+            }}
+          >
+            Keluar
+          </button>
+        </div>
+      </div>
+
+      {/* ===== MOBILE BOTTOM NAV ===== */}
+      <nav className="mobile-bottom-nav">
+        {filteredNav.slice(0, 5).map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`mobile-nav-item ${isActive(item.href) ? 'active' : ''}`}
+          >
+            <span className="mobile-nav-icon">{item.icon}</span>
+            <span className="mobile-nav-label">{item.label.split(' ')[0]}</span>
+          </Link>
+        ))}
+      </nav>
     </>
   )
 }
