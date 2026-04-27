@@ -14,16 +14,13 @@ export default async function DashboardLayout({
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
-      <main
-        className="main-content"
-        style={{
-          flex: 1,
-          padding: '1.25rem',
-          overflow: 'auto',
-          background: 'var(--bg)',
-          minWidth: 0,
-        }}
-      >
+      <main className="main-content" style={{
+        flex: 1,
+        padding: '1.5rem',
+        overflow: 'auto',
+        background: 'var(--bg-primary)',
+        minWidth: 0,
+      }}>
         {children}
       </main>
     </div>

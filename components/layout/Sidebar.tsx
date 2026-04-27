@@ -3,201 +3,185 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
+import { useState } from 'react'
 
 const navItems = [
-  { href: '/dashboard',          label: 'Dashboard',   icon: '⬛', roles: ['ADMIN', 'SUPERVISOR'] },
-  { href: '/dashboard/scan',     label: 'Scan',        icon: '📷', roles: ['ADMIN', 'SUPERVISOR', 'OPERATOR'] },
-  { href: '/dashboard/units',    label: 'Unit',        icon: '📦', roles: ['ADMIN', 'SUPERVISOR'] },
-  { href: '/dashboard/stations', label: 'Stasiun',     icon: '🏭', roles: ['ADMIN'] },
-  { href: '/dashboard/products', label: 'Produk',      icon: '🔩', roles: ['ADMIN'] },
-  { href: '/dashboard/reports',  label: 'Laporan',     icon: '📈', roles: ['ADMIN', 'SUPERVISOR'] },
+  { href: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['ADMIN', 'SUPERVISOR'] },
+  { href: '/dashboard/scan', label: 'Scanner QR', icon: '📷', roles: ['ADMIN', 'SUPERVISOR', 'OPERATOR'] },
+  { href: '/dashboard/units', label: 'Unit Produksi', icon: '📦', roles: ['ADMIN', 'SUPERVISOR'] },
+  { href: '/dashboard/stations', label: 'Stasiun', icon: '🏭', roles: ['ADMIN'] },
+  { href: '/dashboard/products', label: 'Produk', icon: '🔩', roles: ['ADMIN'] },
+  { href: '/dashboard/reports', label: 'Laporan', icon: '📈', roles: ['ADMIN', 'SUPERVISOR'] },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
-  const userRole = (session?.user?.role as string) || 'OPERATOR'
+  const [collapsed, setCollapsed] = useState(false)
+  const userRole = session?.user?.role || 'OPERATOR'
 
-  const filtered = navItems.filter(item => item.roles.includes(userRole))
+  const filteredNav = navItems.filter((item) => item.roles.includes(userRole))
 
-  const roleLabel: Record<string, string> = {
-    ADMIN: 'Admin',
-    SUPERVISOR: 'Supervisor',
-    OPERATOR: 'Operator',
-  }
+  const roleColor = {
+    ADMIN: '#8b5cf6',
+    SUPERVISOR: '#3b82f6',
+    OPERATOR: '#10b981',
+  }[userRole] || '#8ba0c0'
 
-  const roleColor: Record<string, string> = {
-    ADMIN: 'var(--purple)',
-    SUPERVISOR: 'var(--blue)',
-    OPERATOR: 'var(--green)',
-  }
-
-  const isActive = (href: string) =>
-    href === '/dashboard'
-      ? pathname === '/dashboard'
-      : pathname.startsWith(href)
+  const roleLabel = { ADMIN: 'Administrator', SUPERVISOR: 'Supervisor', OPERATOR: 'Operator' }[userRole]
 
   return (
     <>
-      {/* ===== DESKTOP SIDEBAR ===== */}
-      <aside className="desktop-sidebar" style={{
-        width: '200px',
-        minHeight: '100vh',
-        background: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
-      }}>
+      {/* Overlay untuk mobile (menutup sidebar jika di-klik) */}
+      <div 
+        className={`sidebar-overlay ${!collapsed ? 'open' : ''}`} 
+        onClick={() => setCollapsed(true)} 
+      />
+
+      {/* Mobile top bar */}
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+        background: '#111827', borderBottom: '1px solid #2a3a5c',
+        padding: '0.75rem 1rem', alignItems: 'center', justifyContent: 'space-between',
+      }} className="mobile-topbar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1.25rem' }}>🏭</span>
+          <span style={{ fontWeight: 700, color: '#e8eef7', fontSize: '1rem' }}>AssemblyTrack</span>
+        </div>
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          style={{ background: 'none', border: 'none', color: '#8ba0c0', cursor: 'pointer', fontSize: '1.25rem' }}
+        >
+          {collapsed ? '✕' : '☰'}
+        </button>
+      </div>
+
+      {/* Sidebar */}
+      <aside 
+        className={`sidebar-container ${!collapsed ? 'open' : ''}`}
+        style={{
+          width: collapsed ? '72px' : '240px',
+          minHeight: '100vh',
+          background: '#111827',
+          borderRight: '1px solid #2a3a5c',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'width 0.25s ease, transform 0.3s ease',
+          flexShrink: 0,
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          overflow: 'hidden',
+        }}
+      >
         {/* Brand */}
         <div style={{
-          padding: '1rem',
-          borderBottom: '1px solid var(--border)',
+          padding: '1.25rem 1rem',
+          borderBottom: '1px solid #2a3a5c',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
+          gap: '0.75rem',
+          overflow: 'hidden',
         }}>
           <div style={{
-            width: '28px', height: '28px',
-            borderRadius: '6px',
-            background: 'var(--blue-dim)',
-            border: '1px solid rgba(56,139,253,0.3)',
+            width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+            background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.875rem', flexShrink: 0,
+            fontSize: '1.1rem',
           }}>🏭</div>
-          <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text)' }}>AssemblyTrack</span>
+          {!collapsed && (
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#e8eef7' }}>AssemblyTrack</div>
+              <div style={{ fontSize: '0.7rem', color: '#5a728a' }}>v1.0 Production</div>
+            </div>
+          )}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            style={{
+              marginLeft: 'auto', background: 'none', border: 'none',
+              color: '#5a728a', cursor: 'pointer', fontSize: '0.9rem', flexShrink: 0,
+            }}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? '→' : '←'}
+          </button>
         </div>
 
-        {/* Nav */}
-        <nav style={{ flex: 1, padding: '0.5rem' }}>
-          {filtered.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 0.625rem',
-                borderRadius: '6px',
-                marginBottom: '2px',
-                color: isActive(item.href) ? 'var(--text)' : 'var(--text-muted)',
-                background: isActive(item.href) ? 'var(--bg-elevated)' : 'transparent',
-                fontWeight: isActive(item.href) ? 500 : 400,
-                fontSize: '0.8125rem',
-                textDecoration: 'none',
-                transition: 'all 0.12s ease',
-              }}
-            >
-              <span style={{ fontSize: '0.875rem', opacity: 0.85 }}>{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
+        {/* Navigation */}
+        <nav style={{ flex: 1, padding: '0.75rem 0.5rem', overflow: 'auto' }}>
+          {filteredNav.map((item) => {
+            const isActive = pathname === item.href ||
+              (item.href !== '/dashboard' && pathname.startsWith(item.href))
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.6rem 0.75rem',
+                  borderRadius: '8px',
+                  marginBottom: '0.25rem',
+                  textDecoration: 'none',
+                  color: isActive ? '#e8eef7' : '#8ba0c0',
+                  background: isActive ? 'rgba(59,130,246,0.15)' : 'transparent',
+                  borderLeft: isActive ? '3px solid #3b82f6' : '3px solid transparent',
+                  fontWeight: isActive ? 600 : 400,
+                  fontSize: '0.875rem',
+                  transition: 'all 0.15s ease',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span>
+                {!collapsed && item.label}
+              </Link>
+            )
+          })}
         </nav>
 
-        {/* User */}
-        <div style={{ padding: '0.75rem', borderTop: '1px solid var(--border)' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.5rem', borderRadius: '6px', marginBottom: '0.375rem',
-          }}>
+        {/* User info + logout */}
+        <div style={{ borderTop: '1px solid #2a3a5c', padding: '0.75rem' }}>
+          {!collapsed && (
             <div style={{
-              width: '26px', height: '26px', borderRadius: '50%',
-              background: roleColor[userRole] + '22',
-              border: `1px solid ${roleColor[userRole]}44`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.7rem', fontWeight: 700, color: roleColor[userRole], flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              padding: '0.6rem', borderRadius: '8px', marginBottom: '0.5rem',
+              background: 'rgba(255,255,255,0.03)',
             }}>
-              {session?.user?.name?.[0]?.toUpperCase() || '?'}
-            </div>
-            <div style={{ minWidth: 0 }}>
               <div style={{
-                fontSize: '0.75rem', fontWeight: 500, color: 'var(--text)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+                background: `linear-gradient(135deg, ${roleColor}, ${roleColor}88)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.85rem', fontWeight: 700, color: 'white',
               }}>
-                {session?.user?.name}
+                {session?.user?.name?.[0]?.toUpperCase() || '?'}
               </div>
-              <div style={{ fontSize: '0.6875rem', color: roleColor[userRole] }}>
-                {roleLabel[userRole]}
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e8eef7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {session?.user?.name}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: roleColor, fontWeight: 600 }}>{roleLabel}</div>
               </div>
             </div>
-          </div>
+          )}
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem',
-              padding: '0.4rem 0.625rem', borderRadius: '6px',
+              width: '100%', display: 'flex', alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '8px',
               background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-muted)', fontSize: '0.75rem',
-              transition: 'all 0.12s ease',
+              color: '#8ba0c0', fontSize: '0.8rem', transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => {
-              const t = e.currentTarget
-              t.style.background = 'var(--red-dim)'
-              t.style.color = 'var(--red)'
-            }}
-            onMouseLeave={e => {
-              const t = e.currentTarget
-              t.style.background = 'none'
-              t.style.color = 'var(--text-muted)'
-            }}
+            onMouseEnter={(e) => { (e.target as any).style.background = 'rgba(239,68,68,0.1)'; (e.target as any).style.color = '#ef4444' }}
+            onMouseLeave={(e) => { (e.target as any).style.background = 'none'; (e.target as any).style.color = '#8ba0c0' }}
           >
-            <span>↩</span> Keluar
+            <span>🚪</span>
+            {!collapsed && 'Keluar'}
           </button>
         </div>
       </aside>
-
-      {/* ===== MOBILE BOTTOM NAV ===== */}
-      <nav className="mobile-nav" style={{ gap: '0' }}>
-        {filtered.map(item => (
-          <Link
-            key={item.href}
-            href={item.href}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '2px',
-              padding: '0.375rem 0.25rem',
-              borderRadius: '6px',
-              color: isActive(item.href) ? 'var(--blue)' : 'var(--text-subtle)',
-              textDecoration: 'none',
-              fontSize: '0.625rem',
-              fontWeight: isActive(item.href) ? 600 : 400,
-              background: isActive(item.href) ? 'var(--blue-dim)' : 'transparent',
-              transition: 'all 0.12s',
-            }}
-          >
-            <span style={{ fontSize: '1.125rem', lineHeight: 1 }}>{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '2px',
-            padding: '0.375rem 0.25rem',
-            borderRadius: '6px',
-            color: 'var(--text-subtle)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '0.625rem',
-            fontWeight: 400,
-          }}
-        >
-          <span style={{ fontSize: '1.125rem', lineHeight: 1 }}>↩</span>
-          Keluar
-        </button>
-      </nav>
     </>
   )
 }
