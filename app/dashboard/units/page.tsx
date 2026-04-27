@@ -244,12 +244,20 @@ export default function UnitsPage() {
                         )}
                       </td>
                       <td><StatusBadge status={u.status} /></td>
-                      <td style={{ minWidth: '120px' }}>
+                      <td style={{ minWidth: '140px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div className="progress-bar" style={{ flex: 1 }}>
-                            <div className={`progress-fill ${pct === 100 ? 'complete' : ''}`} style={{ width: `${pct}%` }} />
+                          <div className="progress-bar" style={{ flex: 1, minWidth: '80px', width: '100%' }}>
+                            <div
+                              className={`progress-fill ${pct === 100 ? 'complete' : ''}`}
+                              style={{
+                                width: `${pct}%`,
+                                background: pct === 100
+                                  ? 'linear-gradient(90deg, #10b981, #059669)'
+                                  : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                              }}
+                            />
                           </div>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', minWidth: '32px' }}>{pct}%</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', minWidth: '32px', flexShrink: 0 }}>{pct}%</span>
                         </div>
                       </td>
                       <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>

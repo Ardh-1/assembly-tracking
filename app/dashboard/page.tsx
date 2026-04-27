@@ -17,7 +17,7 @@ async function fetchBottleneck() {
 
 function StatCard({ icon, label, value, color, href }: any) {
   const el = (
-    <div className="stat-card" style={{ cursor: href ? 'pointer' : 'default' }}>
+    <div className="stat-card" style={{ cursor: href ? 'pointer' : 'default', height: '100%' }}>
       <div className="stat-icon" style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
         {icon}
       </div>
@@ -27,20 +27,23 @@ function StatCard({ icon, label, value, color, href }: any) {
       </div>
     </div>
   )
-  return href ? <Link href={href} style={{ textDecoration: 'none' }}>{el}</Link> : el
+  return href ? <Link href={href} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>{el}</Link> : el
 }
 
-function ProgressBar({ value, max, color = 'var(--accent-blue)' }: any) {
+function ProgressBar({ value, max, color = '#3b82f6' }: any) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0
+  const fillColor = pct === 100
+    ? 'linear-gradient(90deg, #10b981, #059669)'
+    : `linear-gradient(90deg, ${color}, #06b6d4)`
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-      <div className="progress-bar">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div className="progress-bar" style={{ flex: 1, minWidth: '60px' }}>
         <div
           className={`progress-fill ${pct === 100 ? 'complete' : ''}`}
-          style={{ width: `${pct}%`, background: pct === 100 ? undefined : `linear-gradient(90deg, ${color}, ${color}cc)` }}
+          style={{ width: `${pct}%`, background: fillColor }}
         />
       </div>
-      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', minWidth: '36px' }}>{pct}%</span>
+      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', minWidth: '34px', flexShrink: 0 }}>{pct}%</span>
     </div>
   )
 }
