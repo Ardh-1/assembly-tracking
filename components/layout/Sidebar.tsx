@@ -6,11 +6,11 @@ import { signOut, useSession } from 'next-auth/react'
 import { useState } from 'react'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['ADMIN', 'SUPERVISOR', 'OPERATOR'] },
+  { href: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['ADMIN', 'SUPERVISOR'] },
   { href: '/dashboard/scan', label: 'Scanner QR', icon: '📷', roles: ['ADMIN', 'SUPERVISOR', 'OPERATOR'] },
-  { href: '/dashboard/units', label: 'Unit Produksi', icon: '📦', roles: ['ADMIN', 'SUPERVISOR', 'OPERATOR'] },
-  { href: '/dashboard/stations', label: 'Stasiun', icon: '🏭', roles: ['ADMIN', 'SUPERVISOR'] },
-  { href: '/dashboard/products', label: 'Produk', icon: '🔩', roles: ['ADMIN', 'SUPERVISOR'] },
+  { href: '/dashboard/units', label: 'Unit Produksi', icon: '📦', roles: ['ADMIN', 'SUPERVISOR'] },
+  { href: '/dashboard/stations', label: 'Stasiun', icon: '🏭', roles: ['ADMIN'] },
+  { href: '/dashboard/products', label: 'Produk', icon: '🔩', roles: ['ADMIN'] },
   { href: '/dashboard/reports', label: 'Laporan', icon: '📈', roles: ['ADMIN', 'SUPERVISOR'] },
 ]
 
