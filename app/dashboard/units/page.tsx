@@ -178,19 +178,23 @@ export default function UnitsPage() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-        {['', 'PENDING', 'IN_PROGRESS', 'COMPLETED', 'REJECTED'].map((s) => {
-          const labels: Record<string, string> = { '': 'Semua', PENDING: '⏳ Pending', IN_PROGRESS: '⚙️ Proses', COMPLETED: '✅ Selesai', REJECTED: '❌ Ditolak' }
-          return (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`btn ${statusFilter === s ? 'btn-primary' : 'btn-outline'}`}
-              style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}
-            >
-              {labels[s]}
-            </button>
-          )
-        })}
+        {[
+          { value: '', label: 'Semua', Icon: null },
+          { value: 'PENDING', label: 'Pending', Icon: Clock },
+          { value: 'IN_PROGRESS', label: 'Proses', Icon: Settings },
+          { value: 'COMPLETED', label: 'Selesai', Icon: CheckCircle },
+          { value: 'REJECTED', label: 'Ditolak', Icon: XCircle },
+        ].map(({ value, label, Icon }) => (
+          <button
+            key={value}
+            onClick={() => setStatusFilter(value)}
+            className={`btn ${statusFilter === value ? 'btn-primary' : 'btn-outline'}`}
+            style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            {Icon && <Icon size={13} />}
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* New unit success */}
