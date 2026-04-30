@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import {
+  QrCode, Camera, Keyboard, Play, Square,
+  CheckCircle, XCircle, PartyPopper, AlertTriangle,
+  History, MapPin,
+} from 'lucide-react'
 
 async function fetchStations() {
   const res = await fetch('/api/stations')
@@ -39,10 +44,9 @@ export default function ScanPage() {
   })
   const stations = stationsData?.stations || []
 
-  // Process scan result
   const processScan = useCallback(async (serialNumber: string) => {
     if (!selectedStation) {
-      setResult({ success: false, error: '⚠️ Pilih stasiun terlebih dahulu!' })
+      setResult({ success: false, error: 'Pilih stasiun terlebih dahulu!' })
       return
     }
     if (cooldownRef.current || serialNumber === lastScanned) return
@@ -59,12 +63,10 @@ export default function ScanPage() {
       const data: ScanResult = await res.json()
       setResult(data)
       setScanHistory((prev) => [data, ...prev.slice(0, 9)])
-
-      // Vibrate feedback on mobile
       if (navigator.vibrate) {
         navigator.vibrate(data.success ? [100, 50, 100] : [300])
       }
-    } catch (err) {
+    } catch {
       setResult({ success: false, error: 'Koneksi gagal. Periksa internet Anda.' })
     } finally {
       setLoading(false)
@@ -72,14 +74,12 @@ export default function ScanPage() {
     }
   }, [selectedStation, lastScanned])
 
-  // Start camera scanner
   const startScanner = useCallback(async () => {
     if (!selectedStation) {
       alert('Pilih stasiun terlebih dahulu!')
       return
     }
     try {
-      // Dynamic import html5-qrcode
       const { Html5Qrcode } = await import('html5-qrcode')
       if (scannerRef.current) {
         await scannerRef.current.stop().catch(() => {})
@@ -90,7 +90,6 @@ export default function ScanPage() {
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
         async (decodedText: string) => {
-          // Try parse JSON from QR
           let serial = decodedText
           try {
             const parsed = JSON.parse(decodedText)
@@ -98,7 +97,7 @@ export default function ScanPage() {
           } catch {}
           await processScan(serial)
         },
-        () => {} // ignore scan errors
+        () => {}
       )
       setIsScanning(true)
       setResult(null)
@@ -116,7 +115,6 @@ export default function ScanPage() {
     setIsScanning(false)
   }, [])
 
-  // Manual submit
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!manualSerial.trim()) return
@@ -124,15 +122,12 @@ export default function ScanPage() {
     setManualSerial('')
   }
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => { stopScanner() }
   }, [stopScanner])
 
   const resultBg = result
-    ? result.success
-      ? 'rgba(16,185,129,0.12)'
-      : 'rgba(239,68,68,0.12)'
+    ? result.success ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'
     : 'transparent'
   const resultBorder = result
     ? result.success ? '#10b981' : '#ef4444'
@@ -142,13 +137,19 @@ export default function ScanPage() {
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 className="page-title">📷 Scanner QR Code</h1>
+        <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <QrCode size={28} color="var(--accent-blue)" />
+          Scanner QR Code
+        </h1>
         <p className="page-subtitle">Scan QR unit untuk update status produksi</p>
       </div>
 
       {/* Station selector */}
       <div className="card" style={{ marginBottom: '1rem' }}>
-        <label className="label">🏭 Pilih Stasiun Saat Ini *</label>
+        <label className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <MapPin size={13} />
+          Pilih Stasiun Saat Ini *
+        </label>
         <select
           className="input"
           value={selectedStation}
@@ -163,8 +164,9 @@ export default function ScanPage() {
           ))}
         </select>
         {selectedStation && (
-          <p style={{ fontSize: '0.78rem', color: '#10b981', marginTop: '0.4rem' }}>
-            ✓ Stasiun dipilih — siap scan
+          <p style={{ fontSize: '0.78rem', color: '#10b981', marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <CheckCircle size={13} />
+            Stasiun dipilih — siap scan
           </p>
         )}
       </div>
@@ -177,7 +179,7 @@ export default function ScanPage() {
             onClick={() => { setMode(m); if (m !== 'camera') stopScanner() }}
             className={`btn ${mode === m ? 'btn-primary' : 'btn-outline'}`}
           >
-            {m === 'camera' ? '📷 Kamera' : '⌨️ Manual'}
+            {m === 'camera' ? <><Camera size={15} /> Kamera</> : <><Keyboard size={15} /> Manual</>}
           </button>
         ))}
       </div>
@@ -193,7 +195,7 @@ export default function ScanPage() {
                 alignItems: 'center', justifyContent: 'center', gap: '1rem',
                 background: 'rgba(0,0,0,0.7)',
               }}>
-                <div style={{ fontSize: '3rem' }}>📷</div>
+                <Camera size={52} color="#8ba0c0" />
                 <p style={{ color: '#8ba0c0', fontSize: '0.9rem', textAlign: 'center', maxWidth: '200px' }}>
                   Klik tombol di bawah untuk memulai kamera
                 </p>
@@ -219,7 +221,7 @@ export default function ScanPage() {
                 style={{ flex: 1, justifyContent: 'center' }}
                 disabled={!selectedStation}
               >
-                🟢 Mulai Scanner
+                <Play size={15} /> Mulai Scanner
               </button>
             ) : (
               <button
@@ -227,13 +229,13 @@ export default function ScanPage() {
                 className="btn btn-danger"
                 style={{ flex: 1, justifyContent: 'center' }}
               >
-                🔴 Stop Scanner
+                <Square size={15} /> Stop Scanner
               </button>
             )}
           </div>
           {!selectedStation && (
-            <p style={{ fontSize: '0.78rem', color: '#f59e0b', marginTop: '0.5rem', textAlign: 'center' }}>
-              ⚠️ Pilih stasiun dulu sebelum scan
+            <p style={{ fontSize: '0.78rem', color: '#f59e0b', marginTop: '0.5rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
+              <AlertTriangle size={13} /> Pilih stasiun dulu sebelum scan
             </p>
           )}
         </div>
@@ -259,7 +261,10 @@ export default function ScanPage() {
                 className="btn btn-primary"
                 disabled={loading || !manualSerial.trim() || !selectedStation}
               >
-                {loading ? '⏳' : '✓ Submit'}
+                {loading
+                  ? <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+                  : <CheckCircle size={15} />}
+                Submit
               </button>
             </div>
           </form>
@@ -268,20 +273,21 @@ export default function ScanPage() {
 
       {/* Result feedback */}
       {result && (
-        <div
-          style={{
-            padding: '1.25rem',
-            borderRadius: '12px',
-            border: `2px solid ${resultBorder}`,
-            background: resultBg,
-            marginBottom: '1rem',
-            animation: 'slideIn 0.3s ease',
-            transition: 'all 0.3s ease',
-          }}
-        >
+        <div style={{
+          padding: '1.25rem',
+          borderRadius: '12px',
+          border: `2px solid ${resultBorder}`,
+          background: resultBg,
+          marginBottom: '1rem',
+          animation: 'slideIn 0.3s ease',
+        }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-            <div style={{ fontSize: '1.75rem', lineHeight: 1 }}>
-              {result.success ? (result.isCompleted ? '🎉' : '✅') : '❌'}
+            <div style={{ flexShrink: 0 }}>
+              {result.success
+                ? result.isCompleted
+                  ? <PartyPopper size={28} color="#34d399" />
+                  : <CheckCircle size={28} color="#34d399" />
+                : <XCircle size={28} color="#f87171" />}
             </div>
             <div style={{ flex: 1 }}>
               <div style={{
@@ -304,7 +310,12 @@ export default function ScanPage() {
                   <div className="progress-bar" style={{ height: '8px' }}>
                     <div
                       className={`progress-fill ${result.progress.percentage === 100 ? 'complete' : ''}`}
-                      style={{ width: `${result.progress.percentage}%` }}
+                      style={{
+                        width: `${result.progress.percentage}%`,
+                        background: result.progress.percentage === 100
+                          ? 'linear-gradient(90deg, #10b981, #059669)'
+                          : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                      }}
                     />
                   </div>
                 </div>
@@ -323,7 +334,8 @@ export default function ScanPage() {
       {scanHistory.length > 0 && (
         <div className="card">
           <h3 className="section-title" style={{ marginBottom: '1rem', fontSize: '0.95rem' }}>
-            📜 Riwayat Scan Sesi Ini
+            <History size={16} />
+            Riwayat Scan Sesi Ini
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {scanHistory.map((h, i) => (
@@ -333,7 +345,9 @@ export default function ScanPage() {
                 background: h.success ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
                 border: `1px solid ${h.success ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
               }}>
-                <span style={{ fontSize: '0.9rem' }}>{h.success ? '✅' : '❌'}</span>
+                {h.success
+                  ? <CheckCircle size={16} color="#10b981" />
+                  : <XCircle size={16} color="#ef4444" />}
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {h.unit?.serialNumber || 'Unknown'}
                 </span>

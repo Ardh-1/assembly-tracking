@@ -4,21 +4,31 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { useState } from 'react'
+import {
+  LayoutDashboard, QrCode, Package, Cpu, Wrench,
+  BarChart2, LogOut, ChevronRight, ChevronLeft,
+  Shield, Eye, Factory,
+} from 'lucide-react'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['ADMIN', 'SUPERVISOR'] },
-  { href: '/dashboard/scan', label: 'Scanner QR', icon: '📷', roles: ['ADMIN', 'SUPERVISOR', 'OPERATOR'] },
-  { href: '/dashboard/units', label: 'Unit Produksi', icon: '📦', roles: ['ADMIN', 'SUPERVISOR'] },
-  { href: '/dashboard/stations', label: 'Stasiun', icon: '🏭', roles: ['ADMIN'] },
-  { href: '/dashboard/products', label: 'Produk', icon: '🔩', roles: ['ADMIN'] },
-  { href: '/dashboard/reports', label: 'Laporan', icon: '📈', roles: ['ADMIN', 'SUPERVISOR'] },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'] },
+  { href: '/dashboard/scan', label: 'Scanner QR', icon: QrCode, roles: ['ADMIN', 'SUPERVISOR', 'OPERATOR'] },
+  { href: '/dashboard/units', label: 'Unit Produksi', icon: Package, roles: ['ADMIN', 'SUPERVISOR'] },
+  { href: '/dashboard/stations', label: 'Stasiun', icon: Cpu, roles: ['ADMIN'] },
+  { href: '/dashboard/products', label: 'Produk', icon: Wrench, roles: ['ADMIN'] },
+  { href: '/dashboard/reports', label: 'Laporan', icon: BarChart2, roles: ['ADMIN', 'SUPERVISOR'] },
 ]
+
+const roleIcons: Record<string, React.ElementType> = {
+  ADMIN: Shield,
+  SUPERVISOR: Eye,
+  OPERATOR: Wrench,
+}
 
 export default function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [collapsed, setCollapsed] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const userRole = session?.user?.role || 'OPERATOR'
 
   const filteredNav = navItems.filter((item) => item.roles.includes(userRole))
@@ -30,6 +40,7 @@ export default function Sidebar() {
   }[userRole] || '#8ba0c0'
 
   const roleLabel = { ADMIN: 'Administrator', SUPERVISOR: 'Supervisor', OPERATOR: 'Operator' }[userRole]
+  const RoleIcon = roleIcons[userRole] || Wrench
 
   const isActive = (href: string) =>
     pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
@@ -64,8 +75,9 @@ export default function Sidebar() {
             width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
             background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.1rem',
-          }}>🏭</div>
+          }}>
+            <Factory size={18} color="white" />
+          </div>
           {!collapsed && (
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#e8eef7' }}>AssemblyTrack</div>
@@ -76,42 +88,47 @@ export default function Sidebar() {
             onClick={() => setCollapsed(!collapsed)}
             style={{
               marginLeft: 'auto', background: 'none', border: 'none',
-              color: '#5a728a', cursor: 'pointer', fontSize: '0.9rem', flexShrink: 0,
+              color: '#5a728a', cursor: 'pointer', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand' : 'Collapse'}
           >
-            {collapsed ? '→' : '←'}
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
         </div>
 
         {/* Navigation */}
         <nav style={{ flex: 1, padding: '0.75rem 0.5rem', overflow: 'auto' }}>
-          {filteredNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.6rem 0.75rem',
-                borderRadius: '8px',
-                marginBottom: '0.25rem',
-                textDecoration: 'none',
-                color: isActive(item.href) ? '#e8eef7' : '#8ba0c0',
-                background: isActive(item.href) ? 'rgba(59,130,246,0.15)' : 'transparent',
-                borderLeft: isActive(item.href) ? '3px solid #3b82f6' : '3px solid transparent',
-                fontWeight: isActive(item.href) ? 600 : 400,
-                fontSize: '0.875rem',
-                transition: 'all 0.15s ease',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span>
-              {!collapsed && item.label}
-            </Link>
-          ))}
+          {filteredNav.map((item) => {
+            const Icon = item.icon
+            const active = isActive(item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.6rem 0.75rem',
+                  borderRadius: '8px',
+                  marginBottom: '0.25rem',
+                  textDecoration: 'none',
+                  color: active ? '#e8eef7' : '#8ba0c0',
+                  background: active ? 'rgba(59,130,246,0.15)' : 'transparent',
+                  borderLeft: active ? '3px solid #3b82f6' : '3px solid transparent',
+                  fontWeight: active ? 600 : 400,
+                  fontSize: '0.875rem',
+                  transition: 'all 0.15s ease',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Icon size={18} style={{ flexShrink: 0 }} />
+                {!collapsed && item.label}
+              </Link>
+            )
+          })}
         </nav>
 
         {/* User info + logout */}
@@ -126,9 +143,9 @@ export default function Sidebar() {
                 width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
                 background: `linear-gradient(135deg, ${roleColor}, ${roleColor}88)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.85rem', fontWeight: 700, color: 'white',
+                color: 'white',
               }}>
-                {session?.user?.name?.[0]?.toUpperCase() || '?'}
+                <RoleIcon size={14} />
               </div>
               <div style={{ overflow: 'hidden' }}>
                 <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e8eef7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -147,10 +164,10 @@ export default function Sidebar() {
               background: 'none', border: 'none', cursor: 'pointer',
               color: '#8ba0c0', fontSize: '0.8rem', transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = '#ef4444' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; (e.currentTarget as HTMLButtonElement).style.color = '#8ba0c0' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#8ba0c0' }}
           >
-            <span>🚪</span>
+            <LogOut size={16} />
             {!collapsed && 'Keluar'}
           </button>
         </div>
@@ -162,8 +179,10 @@ export default function Sidebar() {
           <div style={{
             width: '32px', height: '32px', borderRadius: '8px',
             background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem',
-          }}>🏭</div>
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Factory size={16} color="white" />
+          </div>
           <div>
             <div style={{ fontWeight: 800, color: '#e8eef7', fontSize: '0.95rem', lineHeight: 1 }}>AssemblyTrack</div>
             <div style={{ fontSize: '0.65rem', color: roleColor, fontWeight: 600 }}>{roleLabel}</div>
@@ -174,9 +193,9 @@ export default function Sidebar() {
             width: '28px', height: '28px', borderRadius: '50%',
             background: `linear-gradient(135deg, ${roleColor}, ${roleColor}88)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.75rem', fontWeight: 700, color: 'white',
+            color: 'white',
           }}>
-            {session?.user?.name?.[0]?.toUpperCase() || '?'}
+            <RoleIcon size={13} />
           </div>
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
@@ -184,8 +203,10 @@ export default function Sidebar() {
               background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
               borderRadius: '8px', padding: '0.35rem 0.6rem', color: '#ef4444',
               fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '0.3rem',
             }}
           >
+            <LogOut size={13} />
             Keluar
           </button>
         </div>
@@ -193,16 +214,20 @@ export default function Sidebar() {
 
       {/* ===== MOBILE BOTTOM NAV ===== */}
       <nav className="mobile-bottom-nav">
-        {filteredNav.slice(0, 5).map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`mobile-nav-item ${isActive(item.href) ? 'active' : ''}`}
-          >
-            <span className="mobile-nav-icon">{item.icon}</span>
-            <span className="mobile-nav-label">{item.label.split(' ')[0]}</span>
-          </Link>
-        ))}
+        {filteredNav.slice(0, 5).map((item) => {
+          const Icon = item.icon
+          const active = isActive(item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`mobile-nav-item ${active ? 'active' : ''}`}
+            >
+              <Icon size={22} className="mobile-nav-icon" />
+              <span className="mobile-nav-label">{item.label.split(' ')[0]}</span>
+            </Link>
+          )
+        })}
       </nav>
     </>
   )

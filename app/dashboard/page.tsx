@@ -2,6 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import {
+  Package, Clock, Settings, CheckCircle, XCircle,
+  QrCode, PlusCircle, Factory, AlertTriangle, Activity,
+} from 'lucide-react'
 
 async function fetchRealtime() {
   const res = await fetch('/api/reports/realtime')
@@ -15,11 +19,11 @@ async function fetchBottleneck() {
   return res.json()
 }
 
-function StatCard({ icon, label, value, color, href }: any) {
+function StatCard({ icon: Icon, iconColor, label, value, color, href }: any) {
   const el = (
     <div className="stat-card" style={{ cursor: href ? 'pointer' : 'default', height: '100%' }}>
-      <div className="stat-icon" style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
-        {icon}
+      <div className="stat-icon" style={{ background: `${color}18`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon size={22} color={iconColor || color} />
       </div>
       <div>
         <div className="stat-value" style={{ color }}>{value}</div>
@@ -49,14 +53,19 @@ function ProgressBar({ value, max, color = '#3b82f6' }: any) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    PENDING: { label: 'Pending', cls: 'badge-muted' },
-    IN_PROGRESS: { label: 'Proses', cls: 'badge-info' },
-    COMPLETED: { label: 'Selesai', cls: 'badge-success' },
-    REJECTED: { label: 'Ditolak', cls: 'badge-danger' },
+  const map: Record<string, { label: string; cls: string; Icon: any }> = {
+    PENDING:     { label: 'Pending',  cls: 'badge-muted',   Icon: Clock },
+    IN_PROGRESS: { label: 'Proses',   cls: 'badge-info',    Icon: Settings },
+    COMPLETED:   { label: 'Selesai',  cls: 'badge-success', Icon: CheckCircle },
+    REJECTED:    { label: 'Ditolak',  cls: 'badge-danger',  Icon: XCircle },
   }
-  const s = map[status] || { label: status, cls: 'badge-muted' }
-  return <span className={`badge ${s.cls}`}>{s.label}</span>
+  const s = map[status] || { label: status, cls: 'badge-muted', Icon: Clock }
+  return (
+    <span className={`badge ${s.cls}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+      <s.Icon size={11} />
+      {s.label}
+    </span>
+  )
 }
 
 export default function DashboardPage() {
@@ -87,8 +96,12 @@ export default function DashboardPage() {
           <p className="page-subtitle">Monitoring real-time lini perakitan</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <Link href="/dashboard/scan" className="btn btn-primary">📷 Scan Unit</Link>
-          <Link href="/dashboard/units" className="btn btn-outline">➕ Daftar Unit Baru</Link>
+          <Link href="/dashboard/scan" className="btn btn-primary">
+            <QrCode size={16} /> Scan Unit
+          </Link>
+          <Link href="/dashboard/units" className="btn btn-outline">
+            <PlusCircle size={16} /> Daftar Unit Baru
+          </Link>
         </div>
       </div>
 
@@ -100,12 +113,12 @@ export default function DashboardPage() {
           ))
         ) : (
           <>
-            <StatCard icon="📦" label="Total Unit" value={summary.total || 0} color="#3b82f6" href="/dashboard/units" />
-            <StatCard icon="⏳" label="Pending" value={summary.pending || 0} color="#8ba0c0" />
-            <StatCard icon="⚙️" label="Dalam Proses" value={summary.inProgress || 0} color="#f59e0b" />
-            <StatCard icon="✅" label="Selesai" value={summary.completed || 0} color="#10b981" />
+            <StatCard icon={Package} label="Total Unit" value={summary.total || 0} color="#3b82f6" href="/dashboard/units" />
+            <StatCard icon={Clock} label="Pending" value={summary.pending || 0} color="#8ba0c0" />
+            <StatCard icon={Settings} label="Dalam Proses" value={summary.inProgress || 0} color="#f59e0b" />
+            <StatCard icon={CheckCircle} label="Selesai" value={summary.completed || 0} color="#10b981" />
             {summary.rejected > 0 && (
-              <StatCard icon="❌" label="Ditolak" value={summary.rejected} color="#ef4444" />
+              <StatCard icon={XCircle} label="Ditolak" value={summary.rejected} color="#ef4444" />
             )}
           </>
         )}
@@ -115,9 +128,13 @@ export default function DashboardPage() {
         {/* Station Load */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h2 className="section-title">🏭 Beban Stasiun (Real-time)</h2>
-            <span style={{ fontSize: '0.72rem', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: '9999px', color: '#10b981' }}>
-              ● Live
+            <h2 className="section-title">
+              <Factory size={18} />
+              Beban Stasiun (Real-time)
+            </h2>
+            <span style={{ fontSize: '0.72rem', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: '9999px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <Activity size={10} />
+              Live
             </span>
           </div>
           {rtLoading ? (
@@ -147,7 +164,10 @@ export default function DashboardPage() {
         {/* Bottleneck */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h2 className="section-title">⚠️ Analisis Bottleneck</h2>
+            <h2 className="section-title">
+              <AlertTriangle size={18} color="#f59e0b" />
+              Analisis Bottleneck
+            </h2>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>7 hari terakhir</span>
           </div>
           {bnLoading ? (
@@ -155,7 +175,7 @@ export default function DashboardPage() {
           ) : bottleneck.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Belum ada data analisis</p>
           ) : (
-            bottleneck.map((b: any, i: number) => (
+            bottleneck.map((b: any) => (
               <div key={b.stationId} style={{
                 display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem',
               }}>
@@ -204,7 +224,10 @@ export default function DashboardPage() {
       {/* Active Units Table */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h2 className="section-title">📋 Unit Aktif</h2>
+          <h2 className="section-title">
+            <Activity size={18} />
+            Unit Aktif
+          </h2>
           <Link href="/dashboard/units" style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', textDecoration: 'none' }}>
             Lihat semua →
           </Link>
@@ -214,7 +237,7 @@ export default function DashboardPage() {
           <div className="skeleton" style={{ height: '200px', borderRadius: '8px' }} />
         ) : activeUnits.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
+            <Package size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
             <p>Belum ada unit aktif</p>
           </div>
         ) : (

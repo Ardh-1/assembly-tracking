@@ -4,6 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import {
+  Package, Clock, Settings, CheckCircle, XCircle,
+  Plus, QrCode, Eye, Download, X, AlertTriangle,
+  Loader2, PartyPopper, Inbox,
+} from 'lucide-react'
 
 async function fetchUnits(params = '') {
   const res = await fetch(`/api/units${params}`)
@@ -18,14 +23,19 @@ async function fetchProducts() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string; icon: string }> = {
-    PENDING:     { label: 'Pending',  cls: 'badge-muted',    icon: '⏳' },
-    IN_PROGRESS: { label: 'Proses',   cls: 'badge-info',     icon: '⚙️' },
-    COMPLETED:   { label: 'Selesai',  cls: 'badge-success',  icon: '✅' },
-    REJECTED:    { label: 'Ditolak',  cls: 'badge-danger',   icon: '❌' },
+  const map: Record<string, { label: string; cls: string; Icon: any }> = {
+    PENDING:     { label: 'Pending',  cls: 'badge-muted',   Icon: Clock },
+    IN_PROGRESS: { label: 'Proses',   cls: 'badge-info',    Icon: Settings },
+    COMPLETED:   { label: 'Selesai',  cls: 'badge-success', Icon: CheckCircle },
+    REJECTED:    { label: 'Ditolak',  cls: 'badge-danger',  Icon: XCircle },
   }
-  const s = map[status] || { label: status, cls: 'badge-muted', icon: '?' }
-  return <span className={`badge ${s.cls}`}>{s.icon} {s.label}</span>
+  const s = map[status] || { label: status, cls: 'badge-muted', Icon: Clock }
+  return (
+    <span className={`badge ${s.cls}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+      <s.Icon size={11} />
+      {s.label}
+    </span>
+  )
 }
 
 function QRModal({ unit, onClose }: { unit: any; onClose: () => void }) {
@@ -39,7 +49,9 @@ function QRModal({ unit, onClose }: { unit: any; onClose: () => void }) {
         style={{ maxWidth: '360px', width: '100%', textAlign: 'center' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>QR Code</h3>
+        <h3 style={{ fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <QrCode size={18} /> QR Code
+        </h3>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem', fontFamily: 'monospace' }}>
           {unit.serialNumber}
         </p>
@@ -55,9 +67,9 @@ function QRModal({ unit, onClose }: { unit: any; onClose: () => void }) {
             download={`qr-${unit.serialNumber}.png`}
             className="btn btn-primary"
           >
-            ⬇️ Download
+            <Download size={15} /> Download
           </a>
-          <button onClick={onClose} className="btn btn-outline">Tutup</button>
+          <button onClick={onClose} className="btn btn-outline"><X size={15} /> Tutup</button>
         </div>
       </div>
     </div>
@@ -95,8 +107,10 @@ function RegisterModal({ products, onClose, onSuccess }: any) {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
     }} onClick={onClose}>
       <div className="card" style={{ maxWidth: '400px', width: '100%' }} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ fontWeight: 700, marginBottom: '1.25rem', fontSize: '1.1rem' }}>➕ Daftarkan Unit Baru</h3>
-        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span>⚠️</span><span>{error}</span></div>}
+        <h3 style={{ fontWeight: 700, marginBottom: '1.25rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Plus size={18} /> Daftarkan Unit Baru
+        </h3>
+        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><AlertTriangle size={16} /><span>{error}</span></div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group" style={{ marginBottom: '1.25rem' }}>
             <label className="label">Pilih Produk *</label>
@@ -112,9 +126,11 @@ function RegisterModal({ products, onClose, onSuccess }: any) {
           </p>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 1, justifyContent: 'center' }}>
-              {loading ? '⏳ Mendaftar...' : '✅ Daftarkan'}
+              {loading
+                ? <><Loader2 size={15} className="animate-spin" /> Mendaftar...</>
+                : <><CheckCircle size={15} /> Daftarkan</>}
             </button>
-            <button type="button" onClick={onClose} className="btn btn-outline">Batal</button>
+            <button type="button" onClick={onClose} className="btn btn-outline"><X size={15} /> Batal</button>
           </div>
         </form>
       </div>
@@ -147,12 +163,15 @@ export default function UnitsPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="page-title">📦 Unit Produksi</h1>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Package size={26} color="var(--accent-blue)" />
+            Unit Produksi
+          </h1>
           <p className="page-subtitle">Daftar semua unit yang terdaftar di sistem ({data?.total || 0} total)</p>
         </div>
         {canRegister && (
           <button onClick={() => setShowRegister(true)} className="btn btn-primary">
-            ➕ Daftarkan Unit Baru
+            <Plus size={15} /> Daftarkan Unit Baru
           </button>
         )}
       </div>
@@ -177,17 +196,17 @@ export default function UnitsPage() {
       {/* New unit success */}
       {newUnit && (
         <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
-          <span>🎉</span>
+          <PartyPopper size={16} />
           <div>
             <strong>Unit berhasil didaftarkan!</strong>
             <div style={{ fontSize: '0.82rem', marginTop: '0.25rem' }}>
               Serial: <span style={{ fontFamily: 'monospace' }}>{newUnit.serialNumber}</span>
-              {' '}<button onClick={() => setShowQR(newUnit)} style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.82rem' }}>
-                Cetak QR Code
+              {' '}<button onClick={() => setShowQR(newUnit)} style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                <QrCode size={13} /> Cetak QR Code
               </button>
             </div>
           </div>
-          <button onClick={() => setNewUnit(null)} style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', marginLeft: 'auto' }}>✕</button>
+          <button onClick={() => setNewUnit(null)} style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
         </div>
       )}
 
@@ -201,7 +220,7 @@ export default function UnitsPage() {
           </div>
         ) : units.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
+            <Inbox size={52} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
             <p>Tidak ada unit ditemukan</p>
           </div>
         ) : (
@@ -265,11 +284,11 @@ export default function UnitsPage() {
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                          <Link href={`/dashboard/units/${u.id}`} className="btn btn-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}>
-                            Detail
+                          <Link href={`/dashboard/units/${u.id}`} className="btn btn-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', gap: '0.3rem' }}>
+                            <Eye size={13} /> Detail
                           </Link>
-                          <button onClick={() => setShowQR(u)} className="btn btn-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}>
-                            QR
+                          <button onClick={() => setShowQR(u)} className="btn btn-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', gap: '0.3rem' }}>
+                            <QrCode size={13} /> QR
                           </button>
                         </div>
                       </td>

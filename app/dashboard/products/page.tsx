@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Wrench, Plus, X, Loader2, Save, AlertTriangle, CheckCircle, PauseCircle, Package } from 'lucide-react'
 
 async function fetchProducts() {
   const res = await fetch('/api/products')
@@ -42,18 +43,26 @@ export default function ProductsPage() {
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="page-title">🔩 Master Produk</h1>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Wrench size={26} color="var(--accent-blue)" />
+            Master Produk
+          </h1>
           <p className="page-subtitle">Konfigurasi spesifikasi produk yang diproduksi</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} className={`btn ${showForm ? 'btn-outline' : 'btn-primary'}`}>
-          {showForm ? '✕ Batal' : '➕ Tambah Produk'}
+          {showForm ? <><X size={15} /> Batal</> : <><Plus size={15} /> Tambah Produk</>}
         </button>
       </div>
 
       {showForm && (
         <div className="card" style={{ marginBottom: '1.25rem', animation: 'slideIn 0.2s ease' }}>
           <h3 style={{ fontWeight: 700, marginBottom: '1rem' }}>Tambah Produk Baru</h3>
-          {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span>⚠️</span><span>{error}</span></div>}
+          {error && (
+            <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+              <AlertTriangle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
           <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div className="form-group">
               <label className="label">Kode Produk *</label>
@@ -77,7 +86,9 @@ export default function ProductsPage() {
             </div>
             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '0.75rem' }}>
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving ? '⏳ Menyimpan...' : '✅ Simpan Produk'}
+                {saving
+                  ? <><Loader2 size={15} className="animate-spin" /> Menyimpan...</>
+                  : <><Save size={15} /> Simpan Produk</>}
               </button>
               <button type="button" onClick={() => setShowForm(false)} className="btn btn-outline">Batal</button>
             </div>
@@ -89,7 +100,7 @@ export default function ProductsPage() {
         Array(3).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: '100px', marginBottom: '0.75rem', borderRadius: '12px' }} />)
       ) : products.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔩</div>
+          <Wrench size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
           <p>Belum ada produk terdaftar</p>
         </div>
       ) : (
@@ -99,8 +110,10 @@ export default function ProductsPage() {
               <div style={{
                 width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0,
                 background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem',
-              }}>🔩</div>
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Wrench size={22} color="#8b5cf6" />
+              </div>
               <div style={{ flex: 1, minWidth: '200px' }}>
                 <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>{p.productCode}</div>
                 <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.2rem' }}>{p.productName}</div>
@@ -116,8 +129,10 @@ export default function ProductsPage() {
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Unit</div>
                 </div>
               </div>
-              <span className={`badge ${p.isActive ? 'badge-success' : 'badge-muted'}`}>
-                {p.isActive ? '✅ Aktif' : '⏸ Non-aktif'}
+              <span className={`badge ${p.isActive ? 'badge-success' : 'badge-muted'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                {p.isActive
+                  ? <><CheckCircle size={11} /> Aktif</>
+                  : <><PauseCircle size={11} /> Non-aktif</>}
               </span>
             </div>
           ))}

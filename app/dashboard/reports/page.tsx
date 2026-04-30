@@ -2,6 +2,10 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import {
+  BarChart2, Package, CheckCircle, Settings, Clock,
+  AlertTriangle, Factory, Lightbulb, Activity,
+} from 'lucide-react'
 
 async function fetchBottleneck(days: number) {
   const res = await fetch(`/api/reports/bottleneck?days=${days}`)
@@ -32,24 +36,31 @@ export default function ReportsPage() {
   const maxAvg = bottleneck.length > 0 ? Math.max(...bottleneck.map((b: any) => b.avgMinutes), 1) : 1
   const completionRate = summary.total > 0 ? Math.round((summary.completed / summary.total) * 100) : 0
 
+  const kpis = [
+    { label: 'Total Unit', value: summary.total || 0, color: '#3b82f6', Icon: Package },
+    { label: 'Completion Rate', value: `${completionRate}%`, color: '#10b981', Icon: CheckCircle },
+    { label: 'Dalam Proses', value: summary.inProgress || 0, color: '#f59e0b', Icon: Settings },
+    { label: 'Pending', value: summary.pending || 0, color: '#8ba0c0', Icon: Clock },
+  ]
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 className="page-title">📈 Laporan & Analisis</h1>
+        <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <BarChart2 size={26} color="var(--accent-blue)" />
+          Laporan &amp; Analisis
+        </h1>
         <p className="page-subtitle">Bottleneck analysis dan statistik produksi</p>
       </div>
 
       {/* KPI summary */}
       {!rtLoading && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          {[
-            { label: 'Total Unit', value: summary.total || 0, color: '#3b82f6', icon: '📦' },
-            { label: 'Completion Rate', value: `${completionRate}%`, color: '#10b981', icon: '✅' },
-            { label: 'Dalam Proses', value: summary.inProgress || 0, color: '#f59e0b', icon: '⚙️' },
-            { label: 'Pending', value: summary.pending || 0, color: '#8ba0c0', icon: '⏳' },
-          ].map((kpi) => (
+          {kpis.map((kpi) => (
             <div key={kpi.label} className="stat-card">
-              <div className="stat-icon" style={{ background: `${kpi.color}18`, fontSize: '1.2rem' }}>{kpi.icon}</div>
+              <div className="stat-icon" style={{ background: `${kpi.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <kpi.Icon size={22} color={kpi.color} />
+              </div>
               <div>
                 <div className="stat-value" style={{ color: kpi.color, fontSize: '1.5rem' }}>{kpi.value}</div>
                 <div className="stat-label">{kpi.label}</div>
@@ -62,7 +73,10 @@ export default function ReportsPage() {
       {/* Bottleneck Analysis */}
       <div className="card" style={{ marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <h2 className="section-title">⚠️ Analisis Bottleneck per Stasiun</h2>
+          <h2 className="section-title">
+            <AlertTriangle size={18} color="#f59e0b" />
+            Analisis Bottleneck per Stasiun
+          </h2>
           <div style={{ display: 'flex', gap: '0.4rem' }}>
             {[3, 7, 14, 30].map((d) => (
               <button
@@ -81,7 +95,7 @@ export default function ReportsPage() {
           Array(5).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: '72px', marginBottom: '0.75rem', borderRadius: '8px' }} />)
         ) : bottleneck.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📊</div>
+            <BarChart2 size={40} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
             <p>Belum ada data untuk periode ini</p>
           </div>
         ) : (
@@ -107,8 +121,16 @@ export default function ReportsPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{b.stationName}</span>
-                    {isBottleneck && <span className="badge badge-danger" style={{ fontSize: '0.65rem' }}>🔴 BOTTLENECK</span>}
-                    {b.errorRate > 10 && <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>⚠️ Error Tinggi</span>}
+                    {isBottleneck && (
+                      <span className="badge badge-danger" style={{ fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <Activity size={10} /> BOTTLENECK
+                      </span>
+                    )}
+                    {b.errorRate > 10 && (
+                      <span className="badge badge-warning" style={{ fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <AlertTriangle size={10} /> Error Tinggi
+                      </span>
+                    )}
                   </div>
                   <div className="progress-bar" style={{ height: '8px' }}>
                     <div
@@ -138,9 +160,10 @@ export default function ReportsPage() {
         )}
 
         {bottleneck.length > 0 && (
-          <div style={{ marginTop: '1rem', padding: '0.75rem', borderRadius: '8px', background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.15)' }}>
-            <p style={{ fontSize: '0.82rem', color: '#60a5fa' }}>
-              💡 <strong>Insight:</strong> Stasiun dengan bar merah paling panjang adalah bottleneck utama.
+          <div style={{ marginTop: '1rem', padding: '0.75rem', borderRadius: '8px', background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.15)', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+            <Lightbulb size={15} color="#60a5fa" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+            <p style={{ fontSize: '0.82rem', color: '#60a5fa', margin: 0 }}>
+              <strong>Insight:</strong> Stasiun dengan bar merah paling panjang adalah bottleneck utama.
               Pertimbangkan penambahan operator atau optimasi proses di stasiun tersebut.
             </p>
           </div>
@@ -149,7 +172,10 @@ export default function ReportsPage() {
 
       {/* Station real-time distribution */}
       <div className="card">
-        <h2 className="section-title" style={{ marginBottom: '1.25rem' }}>🏭 Distribusi Unit Per Stasiun (Real-time)</h2>
+        <h2 className="section-title" style={{ marginBottom: '1.25rem' }}>
+          <Factory size={18} />
+          Distribusi Unit Per Stasiun (Real-time)
+        </h2>
         {rtLoading ? (
           Array(5).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: '48px', marginBottom: '0.5rem', borderRadius: '6px' }} />)
         ) : (
@@ -182,8 +208,13 @@ export default function ReportsPage() {
                       </td>
                       <td style={{ minWidth: '140px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div className="progress-bar">
-                            <div className="progress-fill" style={{ width: `${loadPct}%`, background: s.activeUnits > 3 ? 'linear-gradient(90deg,#ef4444,#dc2626)' : undefined }} />
+                          <div className="progress-bar" style={{ flex: 1, minWidth: '80px' }}>
+                            <div className="progress-fill" style={{
+                              width: `${loadPct}%`,
+                              background: s.activeUnits > 3
+                                ? 'linear-gradient(90deg,#ef4444,#dc2626)'
+                                : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                            }} />
                           </div>
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', minWidth: '36px' }}>{s.activeUnits} unit</span>
                         </div>

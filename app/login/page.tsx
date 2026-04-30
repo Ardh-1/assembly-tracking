@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { Factory, LogIn, AlertTriangle, Shield, Eye, Wrench } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -40,6 +41,12 @@ export default function LoginPage() {
     setPassword(creds[role].password)
   }
 
+  const roleButtons = [
+    { role: 'admin', label: 'Admin', Icon: Shield, color: '#8b5cf6' },
+    { role: 'supervisor', label: 'Supervisor', Icon: Eye, color: '#3b82f6' },
+    { role: 'operator', label: 'Operator', Icon: Wrench, color: '#10b981' },
+  ]
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -73,9 +80,9 @@ export default function LoginPage() {
             width: '72px', height: '72px', borderRadius: '18px',
             background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
             boxShadow: '0 8px 32px rgba(59,130,246,0.35)',
-            marginBottom: '1rem', fontSize: '2rem',
+            marginBottom: '1rem',
           }}>
-            🏭
+            <Factory size={32} color="white" />
           </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#e8eef7', marginBottom: '0.25rem' }}>
             AssemblyTrack
@@ -99,7 +106,7 @@ export default function LoginPage() {
 
           {error && (
             <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-              <span>⚠️</span>
+              <AlertTriangle size={16} />
               <span>{error}</span>
             </div>
           )}
@@ -149,7 +156,10 @@ export default function LoginPage() {
                   Memproses...
                 </>
               ) : (
-                '🔐 Masuk'
+                <>
+                  <LogIn size={16} />
+                  Masuk
+                </>
               )}
             </button>
           </form>
@@ -160,15 +170,15 @@ export default function LoginPage() {
               Demo — Login cepat:
             </p>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {['admin', 'supervisor', 'operator'].map((role) => (
+              {roleButtons.map(({ role, label, Icon, color }) => (
                 <button
                   key={role}
                   onClick={() => loginAs(role)}
                   className="btn btn-outline"
-                  style={{ flex: 1, justifyContent: 'center', fontSize: '0.75rem', padding: '0.5rem' }}
+                  style={{ flex: 1, justifyContent: 'center', fontSize: '0.75rem', padding: '0.5rem', gap: '0.3rem' }}
                 >
-                  {role === 'admin' ? '👑' : role === 'supervisor' ? '🔍' : '🔧'}{' '}
-                  {role.charAt(0).toUpperCase() + role.slice(1)}
+                  <Icon size={13} color={color} />
+                  {label}
                 </button>
               ))}
             </div>

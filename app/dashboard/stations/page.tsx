@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Cpu, Plus, X, Loader2, CheckCircle, AlertTriangle, Save } from 'lucide-react'
 
 async function fetchStations() {
   const res = await fetch('/api/stations')
@@ -42,11 +43,14 @@ export default function StationsPage() {
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="page-title">🏭 Manajemen Stasiun</h1>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Cpu size={26} color="var(--accent-blue)" />
+            Manajemen Stasiun
+          </h1>
           <p className="page-subtitle">Konfigurasi stasiun perakitan dan urutan proses</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} className={`btn ${showForm ? 'btn-outline' : 'btn-primary'}`}>
-          {showForm ? '✕ Batal' : '➕ Tambah Stasiun'}
+          {showForm ? <><X size={15} /> Batal</> : <><Plus size={15} /> Tambah Stasiun</>}
         </button>
       </div>
 
@@ -54,7 +58,12 @@ export default function StationsPage() {
       {showForm && (
         <div className="card" style={{ marginBottom: '1.25rem', animation: 'slideIn 0.2s ease' }}>
           <h3 style={{ fontWeight: 700, marginBottom: '1rem' }}>Tambah Stasiun Baru</h3>
-          {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span>⚠️</span><span>{error}</span></div>}
+          {error && (
+            <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+              <AlertTriangle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
           <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div className="form-group">
               <label className="label">Kode Stasiun *</label>
@@ -78,7 +87,9 @@ export default function StationsPage() {
             </div>
             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '0.75rem' }}>
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving ? '⏳ Menyimpan...' : '✅ Simpan Stasiun'}
+                {saving
+                  ? <><Loader2 size={15} className="animate-spin" /> Menyimpan...</>
+                  : <><Save size={15} /> Simpan Stasiun</>}
               </button>
               <button type="button" onClick={() => setShowForm(false)} className="btn btn-outline">Batal</button>
             </div>
@@ -109,8 +120,11 @@ export default function StationsPage() {
                   {s.sequenceOrder}
                 </div>
                 <div style={{ paddingRight: '2.5rem' }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem', fontFamily: 'monospace' }}>
-                    {s.stationCode}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <Cpu size={16} color="var(--accent-blue)" />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                      {s.stationCode}
+                    </span>
                   </div>
                   <h3 style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                     {s.stationName}
