@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { query, queryOne, transaction } from '@/lib/db'
 import { requireAuth } from '@/lib/utils'
+import { v4 as uuidv4 } from 'uuid'
 
 // POST /api/scan — Core scan endpoint
-// Body: { serialNumber: string, stationId: string }
 export async function POST(request: NextRequest) {
   const { error, session } = await requireAuth(['ADMIN', 'SUPERVISOR', 'OPERATOR'])
   if (error) return error
@@ -19,54 +19,51 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 1. Cek apakah unit ada
-    const unit = await prisma.assemblyUnit.findUnique({
-      where: { serialNumber },
-      include: {
-        product: true,
-        currentStation: true,
-      },
-    })
+    // 1. Cek unit ada
+    const unit = await queryOne<any>(
+      `SELECT
+         au.id,
+         au.serial_number    AS "serialNumber",
+         au.status,
+         au.current_sequence AS "currentSequence",
+         au.current_station_id AS "currentStationId",
+         au.product_id       AS "productId",
+         mp.total_stations   AS "totalStations",
+         mp.product_name     AS "productName"
+       FROM assembly_units au
+         JOIN master_products mp ON mp.id = au.product_id
+       WHERE au.serial_number = $1`,
+      [serialNumber]
+    )
 
     if (!unit) {
       return NextResponse.json(
-        {
-          error: `Unit dengan serial "${serialNumber}" tidak ditemukan di database`,
-          success: false,
-          code: 'UNIT_NOT_FOUND',
-        },
+        { error: `Unit dengan serial "${serialNumber}" tidak ditemukan`, success: false, code: 'UNIT_NOT_FOUND' },
         { status: 404 }
       )
     }
 
     if (unit.status === 'COMPLETED') {
       return NextResponse.json(
-        {
-          error: 'Unit ini sudah selesai diproses (COMPLETED)',
-          success: false,
-          code: 'UNIT_COMPLETED',
-          unit,
-        },
+        { error: 'Unit ini sudah selesai diproses (COMPLETED)', success: false, code: 'UNIT_COMPLETED', unit },
         { status: 409 }
       )
     }
 
     if (unit.status === 'REJECTED') {
       return NextResponse.json(
-        {
-          error: 'Unit ini ditolak (REJECTED) — hubungi supervisor',
-          success: false,
-          code: 'UNIT_REJECTED',
-          unit,
-        },
+        { error: 'Unit ini ditolak (REJECTED) — hubungi supervisor', success: false, code: 'UNIT_REJECTED', unit },
         { status: 409 }
       )
     }
 
-    // 2. Cek apakah stasiun ada
-    const targetStation = await prisma.station.findUnique({
-      where: { id: stationId },
-    })
+    // 2. Cek stasiun tujuan
+    const targetStation = await queryOne<any>(
+      `SELECT id, station_name AS "stationName", sequence_order AS "sequenceOrder", is_active AS "isActive"
+       FROM stations
+       WHERE id = $1`,
+      [stationId]
+    )
 
     if (!targetStation || !targetStation.isActive) {
       return NextResponse.json(
@@ -75,7 +72,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. VALIDASI URUTAN STASIUN — inti logika bisnis
+    // 3. Validasi urutan stasiun
     const expectedSequence = unit.currentSequence + 1
 
     if (targetStation.sequenceOrder !== expectedSequence) {
@@ -86,90 +83,98 @@ export async function POST(request: NextRequest) {
           : `Urutan stasiun salah! Unit ${direction} stasiun ini. ` +
             `Stasiun berikutnya yang benar: Urutan ke-${expectedSequence}`
 
-      // Catat sebagai error log
-      await prisma.trackingLog.create({
-        data: {
-          unitId: unit.id,
-          stationId: targetStation.id,
-          operatorId: session!.user.id,
-          status: 'ERROR',
-          notes: `Urutan salah: expected ${expectedSequence}, got ${targetStation.sequenceOrder}`,
-        },
-      })
+      // Catat error log
+      await query(
+        `INSERT INTO tracking_logs (id, unit_id, station_id, operator_id, status, notes, scanned_at)
+         VALUES ($1, $2, $3, $4, 'ERROR', $5, NOW())`,
+        [
+          uuidv4(), unit.id, targetStation.id, session!.user.id,
+          `Urutan salah: expected ${expectedSequence}, got ${targetStation.sequenceOrder}`,
+        ]
+      )
 
       return NextResponse.json(
-        {
-          error: msg,
-          success: false,
-          code: 'WRONG_SEQUENCE',
-          expectedSequence,
-          targetSequence: targetStation.sequenceOrder,
-          unit,
-          targetStation,
-        },
+        { error: msg, success: false, code: 'WRONG_SEQUENCE', expectedSequence, targetSequence: targetStation.sequenceOrder, unit, targetStation },
         { status: 422 }
       )
     }
 
-    // 4. Hitung durasi di stasiun sebelumnya
+    // 4. Hitung durasi dari scan terakhir
     let durationSeconds: number | null = null
-    if (unit.currentStation) {
-      const lastLog = await prisma.trackingLog.findFirst({
-        where: { unitId: unit.id, status: 'SUCCESS' },
-        orderBy: { scannedAt: 'desc' },
-      })
+    if (unit.currentStationId) {
+      const lastLog = await queryOne<{ scanned_at: Date }>(
+        `SELECT scanned_at FROM tracking_logs
+         WHERE unit_id = $1 AND status = 'SUCCESS'
+         ORDER BY scanned_at DESC
+         LIMIT 1`,
+        [unit.id]
+      )
       if (lastLog) {
-        durationSeconds = Math.floor(
-          (new Date().getTime() - lastLog.scannedAt.getTime()) / 1000
-        )
+        durationSeconds = Math.floor((Date.now() - new Date(lastLog.scanned_at).getTime()) / 1000)
       }
     }
 
-    // 5. Update assembly unit + create tracking log (transaksi)
-    const isLastStation = targetStation.sequenceOrder === unit.product.totalStations
+    // 5. Transaksi: UPDATE unit + INSERT tracking log
+    const isLastStation = targetStation.sequenceOrder === unit.totalStations
+    const newStatus     = isLastStation ? 'COMPLETED' : 'IN_PROGRESS'
+    const logId         = uuidv4()
 
-    const [updatedUnit, trackingLog] = await prisma.$transaction([
-      prisma.assemblyUnit.update({
-        where: { id: unit.id },
-        data: {
-          currentStationId: targetStation.id,
-          currentSequence: targetStation.sequenceOrder,
-          status: isLastStation ? 'COMPLETED' : 'IN_PROGRESS',
-          completedAt: isLastStation ? new Date() : null,
-        },
-        include: {
-          product: true,
-          currentStation: true,
-        },
-      }),
-      prisma.trackingLog.create({
-        data: {
-          unitId: unit.id,
-          stationId: targetStation.id,
-          operatorId: session!.user.id,
-          status: 'SUCCESS',
+    const updatedUnit = await transaction(async (client) => {
+      // UPDATE assembly_units
+      await client.query(
+        `UPDATE assembly_units
+         SET current_station_id = $1,
+             current_sequence   = $2,
+             status             = $3,
+             completed_at       = $4
+         WHERE id = $5`,
+        [
+          targetStation.id,
+          targetStation.sequenceOrder,
+          newStatus,
+          isLastStation ? new Date() : null,
+          unit.id,
+        ]
+      )
+
+      // INSERT tracking log
+      await client.query(
+        `INSERT INTO tracking_logs (id, unit_id, station_id, operator_id, status, duration_seconds, notes, scanned_at)
+         VALUES ($1, $2, $3, $4, 'SUCCESS', $5, $6, NOW())`,
+        [
+          logId, unit.id, targetStation.id, session!.user.id,
           durationSeconds,
-          notes: isLastStation ? 'Unit selesai diproses' : null,
-        },
-        include: {
-          station: true,
-          operator: { select: { name: true } },
-        },
-      }),
-    ])
+          isLastStation ? 'Unit selesai diproses' : null,
+        ]
+      )
+
+      // Return updated unit
+      const rows = await client.query(
+        `SELECT
+           au.id, au.serial_number AS "serialNumber", au.status,
+           au.current_sequence AS "currentSequence",
+           s.station_name AS "currentStationName",
+           mp.total_stations AS "totalStations", mp.product_name AS "productName"
+         FROM assembly_units au
+           JOIN master_products mp ON mp.id = au.product_id
+           LEFT JOIN stations s ON s.id = au.current_station_id
+         WHERE au.id = $1`,
+        [unit.id]
+      )
+      return rows.rows[0]
+    })
 
     return NextResponse.json({
       success: true,
       message: isLastStation
-        ? `🎉 Unit ${serialNumber} selesai diproses!`
-        : `✅ Unit ${serialNumber} berhasil di-scan di ${targetStation.stationName}`,
+        ? `Unit ${serialNumber} selesai diproses!`
+        : `Unit ${serialNumber} berhasil di-scan di ${targetStation.stationName}`,
       unit: updatedUnit,
-      trackingLog,
       isCompleted: isLastStation,
       progress: {
-        current: targetStation.sequenceOrder,
-        total: unit.product.totalStations,
-        percentage: Math.round((targetStation.sequenceOrder / unit.product.totalStations) * 100),
+        current:    targetStation.sequenceOrder,
+        total:      unit.totalStations,
+        percentage: Math.round((targetStation.sequenceOrder / unit.totalStations) * 100),
       },
     })
   } catch (err: any) {

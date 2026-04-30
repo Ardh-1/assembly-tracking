@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import QRCode from 'qrcode'
-import { prisma } from '@/lib/prisma'
+import { queryOne } from '@/lib/db'
 import { requireAuth } from '@/lib/utils'
 
 export async function GET(
@@ -14,50 +14,37 @@ export async function GET(
   const { searchParams } = new URL(request.url)
   const format = searchParams.get('format') || 'png' // png | svg | base64
 
-  // Verify unit exists
-  const unit = await prisma.assemblyUnit.findUnique({
-    where: { serialNumber: serial },
-    include: { product: true },
-  })
+  // Verifikasi unit ada
+  const unit = await queryOne<{ id: string; serial_number: string; product_id: string }>(
+    `SELECT id, serial_number, product_id
+     FROM assembly_units
+     WHERE serial_number = $1`,
+    [serial]
+  )
 
   if (!unit) {
     return NextResponse.json({ error: 'Unit tidak ditemukan' }, { status: 404 })
   }
 
-  // QR content berisi JSON dengan info unit
+  // Konten QR
   const qrContent = JSON.stringify({
-    sn: unit.serialNumber,
-    pid: unit.productId,
+    sn:  unit.serial_number,
+    pid: unit.product_id,
     uid: unit.id,
   })
 
   if (format === 'svg') {
-    const svg = await QRCode.toString(qrContent, {
-      type: 'svg',
-      errorCorrectionLevel: 'M',
-      margin: 2,
-    })
-    return new NextResponse(svg, {
-      headers: { 'Content-Type': 'image/svg+xml' },
-    })
+    const svg = await QRCode.toString(qrContent, { type: 'svg', errorCorrectionLevel: 'M', margin: 2 })
+    return new NextResponse(svg, { headers: { 'Content-Type': 'image/svg+xml' } })
   }
 
   if (format === 'base64') {
-    const dataUrl = await QRCode.toDataURL(qrContent, {
-      errorCorrectionLevel: 'M',
-      margin: 2,
-      width: 300,
-    })
+    const dataUrl = await QRCode.toDataURL(qrContent, { errorCorrectionLevel: 'M', margin: 2, width: 300 })
     return NextResponse.json({ dataUrl, serialNumber: serial })
   }
 
-  // Default: PNG buffer
-  const buffer = await QRCode.toBuffer(qrContent, {
-    errorCorrectionLevel: 'M',
-    margin: 2,
-    width: 400,
-  })
-
+  // Default: PNG
+  const buffer = await QRCode.toBuffer(qrContent, { errorCorrectionLevel: 'M', margin: 2, width: 400 })
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'image/png',

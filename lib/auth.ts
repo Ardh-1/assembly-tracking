@@ -2,9 +2,12 @@ import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
+import { queryOne } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
+  // PrismaAdapter hanya digunakan untuk NextAuth internal tables (sessions, accounts)
+  // Query autentikasi user sendiri sudah pakai raw SQL
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: 'jwt',
@@ -26,17 +29,29 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email dan password diperlukan')
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        })
+        // Raw SQL — cari user berdasarkan email
+        const user = await queryOne<{
+          id: string
+          email: string
+          name: string
+          role: string
+          password_hash: string
+          is_active: boolean
+        }>(
+          `SELECT id, email, name, role, password_hash, is_active
+           FROM users
+           WHERE email = $1
+           LIMIT 1`,
+          [credentials.email]
+        )
 
-        if (!user || !user.isActive) {
+        if (!user || !user.is_active) {
           throw new Error('Akun tidak ditemukan atau tidak aktif')
         }
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
-          user.passwordHash
+          user.password_hash
         )
 
         if (!isPasswordValid) {

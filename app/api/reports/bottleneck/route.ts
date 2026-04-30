@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { query } from '@/lib/db'
 import { requireAuth } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
@@ -7,81 +7,65 @@ export async function GET(request: NextRequest) {
   if (error) return error
 
   const { searchParams } = new URL(request.url)
-  const days = parseInt(searchParams.get('days') || '7')
+  const days  = Math.min(90, Math.max(1, parseInt(searchParams.get('days') || '7')))
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
-  // Bottleneck: rata-rata durasi per stasiun
-  const bottleneckRaw = await prisma.trackingLog.groupBy({
-    by: ['stationId'],
-    where: {
-      status: 'SUCCESS',
-      durationSeconds: { not: null, gt: 0 },
-      scannedAt: { gte: since },
-    },
-    _avg: { durationSeconds: true },
-    _count: { id: true },
-    _max: { durationSeconds: true },
-    _min: { durationSeconds: true },
-  })
+  // 1. Rata-rata durasi per stasiun (bottleneck analysis)
+  const bottleneckRows = await query(
+    `SELECT
+       tl.station_id                            AS "stationId",
+       s.station_name                           AS "stationName",
+       s.sequence_order                         AS "sequenceOrder",
+       ROUND(AVG(tl.duration_seconds) / 60.0, 1) AS "avgMinutes",
+       ROUND(MAX(tl.duration_seconds) / 60.0, 1) AS "maxMinutes",
+       ROUND(MIN(tl.duration_seconds) / 60.0, 1) AS "minMinutes",
+       COUNT(*)                                   AS "totalScans"
+     FROM tracking_logs tl
+       JOIN stations s ON s.id = tl.station_id
+     WHERE
+       tl.status = 'SUCCESS'
+       AND tl.duration_seconds IS NOT NULL
+       AND tl.duration_seconds > 0
+       AND tl.scanned_at >= $1
+     GROUP BY tl.station_id, s.station_name, s.sequence_order
+     ORDER BY s.sequence_order ASC`,
+    [since]
+  )
 
-  // Fetch station names
-  const stationIds = bottleneckRaw.map((r) => r.stationId)
-  const stations = await prisma.station.findMany({
-    where: { id: { in: stationIds } },
-    select: { id: true, stationName: true, sequenceOrder: true },
-  })
+  // 2. Error rate per stasiun — satu query dengan FILTER
+  const errorRateRows = await query(
+    `SELECT
+       station_id                                     AS "stationId",
+       COUNT(*) FILTER (WHERE status = 'SUCCESS')     AS "successCount",
+       COUNT(*) FILTER (WHERE status = 'ERROR')       AS "errorCount"
+     FROM tracking_logs
+     WHERE scanned_at >= $1
+     GROUP BY station_id`,
+    [since]
+  )
 
-  const stationMap = Object.fromEntries(stations.map((s) => [s.id, s]))
-
-  const bottleneck = bottleneckRaw
-    .map((r) => ({
-      stationId: r.stationId,
-      stationName: stationMap[r.stationId]?.stationName || 'Unknown',
-      sequenceOrder: stationMap[r.stationId]?.sequenceOrder || 0,
-      avgMinutes: Math.round(((r._avg.durationSeconds || 0) / 60) * 10) / 10,
-      maxMinutes: Math.round(((r._max.durationSeconds || 0) / 60) * 10) / 10,
-      minMinutes: Math.round(((r._min.durationSeconds || 0) / 60) * 10) / 10,
-      totalScans: r._count.id,
-    }))
-    .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-
-  // Error rate per stasiun
-  const errorRates = await prisma.trackingLog.groupBy({
-    by: ['stationId', 'status'],
-    where: { scannedAt: { gte: since } },
-    _count: { id: true },
-  })
-
-  const errorMap: Record<string, { success: number; error: number }> = {}
-  for (const r of errorRates) {
-    if (!errorMap[r.stationId]) errorMap[r.stationId] = { success: 0, error: 0 }
-    if (r.status === 'SUCCESS') errorMap[r.stationId].success += r._count.id
-    if (r.status === 'ERROR') errorMap[r.stationId].error += r._count.id
+  // Buat map stationId → errorRate
+  const errorMap: Record<string, number> = {}
+  for (const r of errorRateRows) {
+    const success = parseInt(r.successCount || '0')
+    const errors  = parseInt(r.errorCount   || '0')
+    const total   = success + errors
+    errorMap[r.stationId] = total > 0 ? Math.round((errors / total) * 100) : 0
   }
 
-  const bottleneckWithErrors = bottleneck.map((b) => ({
-    ...b,
-    errorRate: errorMap[b.stationId]
-      ? Math.round(
-          (errorMap[b.stationId].error /
-            (errorMap[b.stationId].success + errorMap[b.stationId].error)) *
-            100
-        )
-      : 0,
+  const bottleneck = bottleneckRows.map((r) => ({
+    stationId:     r.stationId,
+    stationName:   r.stationName,
+    sequenceOrder: r.sequenceOrder,
+    avgMinutes:    parseFloat(r.avgMinutes || '0'),
+    maxMinutes:    parseFloat(r.maxMinutes || '0'),
+    minMinutes:    parseFloat(r.minMinutes || '0'),
+    totalScans:    parseInt(r.totalScans   || '0'),
+    errorRate:     errorMap[r.stationId] ?? 0,
   }))
 
-  // Throughput harian
-  const dailyThroughput = await prisma.trackingLog.groupBy({
-    by: ['scannedAt'],
-    where: {
-      status: 'SUCCESS',
-      scannedAt: { gte: since },
-    },
-    _count: { id: true },
-  })
-
   return NextResponse.json({
-    bottleneck: bottleneckWithErrors,
+    bottleneck,
     period: { days, since },
   })
 }
