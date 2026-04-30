@@ -111,7 +111,6 @@ export default function Sidebar() {
                   textDecoration: 'none',
                   color: active ? 'var(--nav-active-border)' : 'var(--text-secondary)',
                   background: active ? 'var(--nav-active-bg)' : 'transparent',
-                  borderLeft: `3px solid ${active ? 'var(--nav-active-border)' : 'transparent'}`,
                   fontWeight: active ? 600 : 400,
                   fontSize: '0.875rem',
                   transition: 'all 0.15s ease',
