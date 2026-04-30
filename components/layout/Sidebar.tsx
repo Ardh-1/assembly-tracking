@@ -48,28 +48,33 @@ export default function Sidebar() {
   return (
     <>
       {/* ===== DESKTOP SIDEBAR ===== */}
-      <aside className="desktop-sidebar" style={{
-        width: collapsed ? '72px' : '240px',
-        minHeight: '100vh',
-        background: '#111827',
-        borderRight: '1px solid #2a3a5c',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'width 0.25s ease',
-        flexShrink: 0,
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
-        overflow: 'hidden',
-      }}>
+      <aside
+        className="desktop-sidebar"
+        style={{
+          width: collapsed ? '64px' : '240px',
+          minHeight: '100vh',
+          background: 'var(--sidebar-bg)',
+          borderRight: '1px solid var(--sidebar-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'width 0.25s ease, background 0.25s ease, border-color 0.25s ease',
+          flexShrink: 0,
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          overflow: 'hidden',
+        }}
+      >
         {/* Brand */}
         <div style={{
-          padding: '1.25rem 1rem',
-          borderBottom: '1px solid #2a3a5c',
+          padding: collapsed ? '1.1rem 0.75rem' : '1.1rem 1rem',
+          borderBottom: '1px solid var(--sidebar-border)',
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
           overflow: 'hidden',
+          minHeight: '64px',
+          transition: 'padding 0.25s ease',
         }}>
           <div style={{
             width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
@@ -79,26 +84,15 @@ export default function Sidebar() {
             <Factory size={18} color="white" />
           </div>
           {!collapsed && (
-            <div>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#e8eef7' }}>AssemblyTrack</div>
-              <div style={{ fontSize: '0.7rem', color: '#5a728a' }}>v1.0 Production</div>
+            <div style={{ overflow: 'hidden', flex: 1 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>AssemblyTrack</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>v1.0 Production</div>
             </div>
           )}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              marginLeft: 'auto', background: 'none', border: 'none',
-              color: '#5a728a', cursor: 'pointer', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-            title={collapsed ? 'Expand' : 'Collapse'}
-          >
-            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
         </div>
 
         {/* Navigation */}
-        <nav style={{ flex: 1, padding: '0.75rem 0.5rem', overflow: 'auto' }}>
+        <nav style={{ flex: 1, padding: '0.625rem 0.5rem', overflowY: 'auto', overflowX: 'hidden' }}>
           {filteredNav.map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
@@ -106,22 +100,24 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                title={collapsed ? item.label : undefined}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem',
-                  padding: '0.6rem 0.75rem',
+                  padding: collapsed ? '0.65rem' : '0.65rem 0.75rem',
                   borderRadius: '8px',
-                  marginBottom: '0.25rem',
+                  marginBottom: '0.2rem',
                   textDecoration: 'none',
-                  color: active ? '#e8eef7' : '#8ba0c0',
-                  background: active ? 'rgba(59,130,246,0.15)' : 'transparent',
-                  borderLeft: active ? '3px solid #3b82f6' : '3px solid transparent',
+                  color: active ? 'var(--nav-active-border)' : 'var(--text-secondary)',
+                  background: active ? 'var(--nav-active-bg)' : 'transparent',
+                  borderLeft: `3px solid ${active ? 'var(--nav-active-border)' : 'transparent'}`,
                   fontWeight: active ? 600 : 400,
                   fontSize: '0.875rem',
                   transition: 'all 0.15s ease',
                   overflow: 'hidden',
                   whiteSpace: 'nowrap',
+                  justifyContent: collapsed ? 'center' : 'flex-start',
                 }}
               >
                 <Icon size={18} style={{ flexShrink: 0 }} />
@@ -132,12 +128,13 @@ export default function Sidebar() {
         </nav>
 
         {/* User info + logout */}
-        <div style={{ borderTop: '1px solid #2a3a5c', padding: '0.75rem' }}>
+        <div style={{ borderTop: '1px solid var(--sidebar-border)', padding: '0.75rem' }}>
           {!collapsed && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem',
               padding: '0.6rem', borderRadius: '8px', marginBottom: '0.5rem',
-              background: 'rgba(255,255,255,0.03)',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
             }}>
               <div style={{
                 width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
@@ -147,31 +144,65 @@ export default function Sidebar() {
               }}>
                 <RoleIcon size={14} />
               </div>
-              <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e8eef7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ overflow: 'hidden', flex: 1 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {session?.user?.name}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: roleColor, fontWeight: 600 }}>{roleLabel}</div>
               </div>
             </div>
           )}
+
+          {/* Logout */}
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
+            title="Keluar"
             style={{
               width: '100%', display: 'flex', alignItems: 'center',
               justifyContent: collapsed ? 'center' : 'flex-start',
               gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '8px',
               background: 'none', border: 'none', cursor: 'pointer',
-              color: '#8ba0c0', fontSize: '0.8rem', transition: 'all 0.15s ease',
+              color: 'var(--text-secondary)', fontSize: '0.8rem', transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#8ba0c0' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-secondary)' }}
           >
             <LogOut size={16} />
             {!collapsed && 'Keluar'}
           </button>
         </div>
       </aside>
+
+      {/* ===== COLLAPSE TOGGLE — floating at sidebar edge ===== */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        title={collapsed ? 'Buka Sidebar' : 'Ciutkan Sidebar'}
+        className="desktop-sidebar"
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: collapsed ? '48px' : '224px',
+          transform: 'translateY(-50%)',
+          width: '22px',
+          height: '48px',
+          borderRadius: '0 8px 8px 0',
+          background: 'var(--sidebar-bg)',
+          border: '1px solid var(--sidebar-border)',
+          borderLeft: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          color: 'var(--text-muted)',
+          zIndex: 100,
+          transition: 'left 0.25s ease, background 0.25s ease',
+          padding: 0,
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--accent-blue)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)' }}
+      >
+        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
 
       {/* ===== MOBILE TOP BAR ===== */}
       <div className="mobile-topbar">
@@ -184,7 +215,7 @@ export default function Sidebar() {
             <Factory size={16} color="white" />
           </div>
           <div>
-            <div style={{ fontWeight: 800, color: '#e8eef7', fontSize: '0.95rem', lineHeight: 1 }}>AssemblyTrack</div>
+            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1 }}>AssemblyTrack</div>
             <div style={{ fontSize: '0.65rem', color: roleColor, fontWeight: 600 }}>{roleLabel}</div>
           </div>
         </div>

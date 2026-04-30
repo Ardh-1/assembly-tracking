@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
-:root {
+/* =============================================
+   DARK MODE (default)
+   ============================================= */
+:root,
+[data-theme="dark"] {
   --bg-primary: #0a0e1a;
   --bg-secondary: #111827;
   --bg-card: #1a2235;
@@ -21,6 +25,42 @@
   --gradient-danger: linear-gradient(135deg, #ef4444, #dc2626);
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.15);
+  /* Sidebar specific */
+  --sidebar-bg: #111827;
+  --sidebar-border: #2a3a5c;
+  --nav-active-bg: rgba(59, 130, 246, 0.15);
+  --nav-active-border: #3b82f6;
+}
+
+/* =============================================
+   LIGHT MODE
+   ============================================= */
+[data-theme="light"] {
+  --bg-primary: #f1f5f9;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --border: #e2e8f0;
+  --border-light: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-blue: #2563eb;
+  --accent-cyan: #0891b2;
+  --accent-green: #059669;
+  --accent-yellow: #d97706;
+  --accent-red: #dc2626;
+  --accent-purple: #7c3aed;
+  --gradient-primary: linear-gradient(135deg, #2563eb, #0891b2);
+  --gradient-success: linear-gradient(135deg, #059669, #047857);
+  --gradient-danger: linear-gradient(135deg, #dc2626, #b91c1c);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 30px rgba(37, 99, 235, 0.12);
+  /* Sidebar — light version */
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --nav-active-bg: rgba(37, 99, 235, 0.08);
+  --nav-active-border: #2563eb;
 }
 
 * {
@@ -39,6 +79,7 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* Scrollbar */
@@ -455,13 +496,14 @@ tr:hover td {
   left: 0;
   right: 0;
   z-index: 100;
-  background: #111827;
-  border-bottom: 1px solid #2a3a5c;
+  background: var(--sidebar-bg);
+  border-bottom: 1px solid var(--sidebar-border);
   padding: 0.7rem 1rem;
   align-items: center;
   justify-content: space-between;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 /* =============================================
@@ -593,3 +635,57 @@ tr:hover td {
   .main-content { padding: 1.25rem; }
 }
 
+/* =============================================
+   LIGHT MODE OVERRIDES
+   (only for elements that need extra specificity)
+   ============================================= */
+[data-theme="light"] body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .mobile-nav-item {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .mobile-nav-item.active {
+  color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+}
+
+[data-theme="light"] th {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+[data-theme="light"] td {
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+[data-theme="light"] tr:hover td {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}

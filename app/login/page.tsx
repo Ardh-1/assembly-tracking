@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Factory, LogIn, AlertTriangle, Shield, Eye, Wrench } from 'lucide-react'
+import { Factory, LogIn, AlertTriangle, Shield, Eye, Wrench, Sun, Moon } from 'lucide-react'
+import { useTheme } from '@/lib/theme'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { theme, toggleTheme } = useTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -47,16 +49,21 @@ export default function LoginPage() {
     { role: 'operator', label: 'Operator', Icon: Wrench, color: '#10b981' },
   ]
 
+  const isDark = theme === 'dark'
+
   return (
     <div style={{
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0a0e1a 0%, #0f172a 50%, #0a0e1a 100%)',
+      background: isDark
+        ? 'linear-gradient(135deg, #0a0e1a 0%, #0f172a 50%, #0a0e1a 100%)'
+        : 'linear-gradient(135deg, #e0e9f7 0%, #f1f5fb 50%, #dce6f5 100%)',
       padding: '1rem',
       position: 'relative',
       overflow: 'hidden',
+      transition: 'background 0.3s ease',
     }}>
       {/* Background decoration */}
       <div style={{
@@ -72,6 +79,37 @@ export default function LoginPage() {
         borderRadius: '50%', pointerEvents: 'none',
       }} />
 
+      {/* ===== THEME TOGGLE (floating top-right) ===== */}
+      <button
+        onClick={toggleTheme}
+        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        style={{
+          position: 'fixed',
+          top: '1.25rem',
+          right: '1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.9rem',
+          borderRadius: '999px',
+          border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
+          background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
+          color: isDark ? '#e8eef7' : '#1e293b',
+          cursor: 'pointer',
+          fontSize: '0.8rem',
+          fontWeight: 600,
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: isDark ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.1)',
+          transition: 'all 0.25s ease',
+          zIndex: 50,
+        }}
+      >
+        {isDark
+          ? <><Sun size={15} color="#f59e0b" /> Light Mode</>
+          : <><Moon size={15} color="#6366f1" /> Dark Mode</>}
+      </button>
+
       <div style={{ width: '100%', maxWidth: '420px', position: 'relative' }}>
         {/* Logo / Brand */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -84,23 +122,34 @@ export default function LoginPage() {
           }}>
             <Factory size={32} color="white" />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#e8eef7', marginBottom: '0.25rem' }}>
+          <h1 style={{
+            fontSize: '1.75rem', fontWeight: 800,
+            color: isDark ? '#e8eef7' : '#0f172a',
+            marginBottom: '0.25rem',
+          }}>
             AssemblyTrack
           </h1>
-          <p style={{ color: '#8ba0c0', fontSize: '0.9rem' }}>
+          <p style={{ color: isDark ? '#8ba0c0' : '#64748b', fontSize: '0.9rem' }}>
             System Pelacakan Lini Perakitan
           </p>
         </div>
 
         {/* Login Card */}
         <div style={{
-          background: '#1a2235',
-          border: '1px solid #2a3a5c',
+          background: isDark ? '#1a2235' : '#ffffff',
+          border: `1px solid ${isDark ? '#2a3a5c' : '#e2e8f0'}`,
           borderRadius: '16px',
           padding: '2rem',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          boxShadow: isDark
+            ? '0 24px 64px rgba(0,0,0,0.5)'
+            : '0 24px 64px rgba(0,0,0,0.08)',
+          transition: 'background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
         }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#e8eef7', marginBottom: '1.5rem' }}>
+          <h2 style={{
+            fontSize: '1.1rem', fontWeight: 700,
+            color: isDark ? '#e8eef7' : '#0f172a',
+            marginBottom: '1.5rem',
+          }}>
             Masuk ke Akun Anda
           </h2>
 
@@ -165,8 +214,16 @@ export default function LoginPage() {
           </form>
 
           {/* Quick login buttons for demo */}
-          <div style={{ marginTop: '1.5rem', borderTop: '1px solid #2a3a5c', paddingTop: '1.5rem' }}>
-            <p style={{ fontSize: '0.75rem', color: '#5a728a', textAlign: 'center', marginBottom: '0.75rem' }}>
+          <div style={{
+            marginTop: '1.5rem',
+            borderTop: `1px solid ${isDark ? '#2a3a5c' : '#e2e8f0'}`,
+            paddingTop: '1.5rem',
+          }}>
+            <p style={{
+              fontSize: '0.75rem',
+              color: isDark ? '#5a728a' : '#94a3b8',
+              textAlign: 'center', marginBottom: '0.75rem',
+            }}>
               Demo — Login cepat:
             </p>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -185,7 +242,10 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.75rem', color: '#5a728a' }}>
+        <p style={{
+          textAlign: 'center', marginTop: '1.5rem', fontSize: '0.75rem',
+          color: isDark ? '#5a728a' : '#94a3b8',
+        }}>
           © 2024 AssemblyTrack — Manufacturing Intelligence System
         </p>
       </div>
