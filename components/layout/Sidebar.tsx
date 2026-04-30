@@ -244,7 +244,7 @@ export default function Sidebar() {
 
       {/* ===== MOBILE BOTTOM NAV ===== */}
       <nav className="mobile-bottom-nav">
-        {filteredNav.slice(0, 5).map((item) => {
+      {filteredNav.map((item) => {
           const Icon = item.icon
           const active = isActive(item.href)
           return (
@@ -253,7 +253,7 @@ export default function Sidebar() {
               href={item.href}
               className={`mobile-nav-item ${active ? 'active' : ''}`}
             >
-              <Icon size={22} className="mobile-nav-icon" />
+              <Icon size={20} className="mobile-nav-icon" />
               <span className="mobile-nav-label">{item.label.split(' ')[0]}</span>
             </Link>
           )
