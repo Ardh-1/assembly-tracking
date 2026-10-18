@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Wrench, Plus, X, Loader2, Save, AlertTriangle, CheckCircle, PauseCircle, Package } from 'lucide-react'
+import { Wrench, Plus, X, Loader2, Save, AlertTriangle, CheckCircle, PauseCircle, Trash2 } from 'lucide-react'
 
 async function fetchProducts() {
   const res = await fetch('/api/products')
@@ -17,6 +17,12 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Delete modal state
+  const [productToDelete, setProductToDelete] = useState<any | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
   const { data, isLoading } = useQuery({ queryKey: ['products'], queryFn: fetchProducts })
   const products = data?.products || []
 
@@ -24,6 +30,7 @@ export default function ProductsPage() {
     e.preventDefault()
     setSaving(true)
     setError('')
+    setActionFeedback(null)
     try {
       const res = await fetch('/api/products', {
         method: 'POST',
@@ -35,8 +42,32 @@ export default function ProductsPage() {
       qc.invalidateQueries({ queryKey: ['products'] })
       setFormData({ productCode: '', productName: '', description: '', totalStations: '5' })
       setShowForm(false)
+      setActionFeedback({ type: 'success', message: 'Produk berhasil ditambahkan' })
     } catch { setError('Koneksi gagal') }
     finally { setSaving(false) }
+  }
+
+  const handleDelete = async () => {
+    if (!productToDelete) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      const res = await fetch(`/api/products/${productToDelete.id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setDeleteError(data.error || 'Gagal menghapus produk')
+        return
+      }
+      qc.invalidateQueries({ queryKey: ['products'] })
+      setActionFeedback({ type: 'success', message: data.message || 'Produk berhasil dihapus' })
+      setProductToDelete(null)
+    } catch {
+      setDeleteError('Koneksi gagal saat menghapus produk')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -49,10 +80,20 @@ export default function ProductsPage() {
           </h1>
           <p className="page-subtitle">Konfigurasi spesifikasi produk yang diproduksi</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className={`btn ${showForm ? 'btn-outline' : 'btn-primary'}`}>
+        <button onClick={() => { setShowForm(!showForm); setError(''); setActionFeedback(null) }} className={`btn ${showForm ? 'btn-outline' : 'btn-primary'}`}>
           {showForm ? <><X size={15} /> Batal</> : <><Plus size={15} /> Tambah Produk</>}
         </button>
       </div>
+
+      {actionFeedback && (
+        <div className={`alert ${actionFeedback.type === 'success' ? 'alert-success' : 'alert-error'}`} style={{ marginBottom: '1.25rem' }}>
+          {actionFeedback.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+          <span>{actionFeedback.message}</span>
+          <button onClick={() => setActionFeedback(null)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {showForm && (
         <div className="card" style={{ marginBottom: '1.25rem', animation: 'slideIn 0.2s ease' }}>
@@ -134,8 +175,90 @@ export default function ProductsPage() {
                   ? <><CheckCircle size={11} /> Aktif</>
                   : <><PauseCircle size={11} /> Non-aktif</>}
               </span>
+              <button
+                onClick={() => { setProductToDelete(p); setDeleteError('') }}
+                className="btn btn-outline"
+                style={{
+                  color: '#ef4444',
+                  borderColor: 'rgba(239, 68, 68, 0.35)',
+                  padding: '0.4rem 0.7rem',
+                  fontSize: '0.8rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                }}
+                title="Hapus Produk"
+              >
+                <Trash2 size={14} />
+                Hapus
+              </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Produk */}
+      {productToDelete && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+        }} onClick={() => !deleting && setProductToDelete(null)}>
+          <div
+            className="card"
+            style={{ maxWidth: '420px', width: '100%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem', color: '#ef4444' }}>
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '10px',
+                background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Trash2 size={20} />
+              </div>
+              <h3 style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)', margin: 0 }}>
+                Hapus Master Produk
+              </h3>
+            </div>
+
+            {deleteError && (
+              <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+                <AlertTriangle size={16} />
+                <span style={{ fontSize: '0.85rem' }}>{deleteError}</span>
+              </div>
+            )}
+
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '0.75rem' }}>
+              Apakah Anda yakin ingin menghapus produk <strong style={{ color: 'var(--text-primary)' }}>{productToDelete.productName}</strong> (<span style={{ fontFamily: 'monospace' }}>{productToDelete.productCode}</span>)?
+            </p>
+
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: 1.4 }}>
+              Produk dengan riwayat data unit atau stasiun akan dinonaktifkan dari daftar aktif untuk menjaga integritas database.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="btn btn-outline"
+                disabled={deleting}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="btn btn-danger"
+                disabled={deleting}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                {deleting ? (
+                  <><Loader2 size={14} className="animate-spin" /> Menghapus...</>
+                ) : (
+                  <><Trash2 size={14} /> Ya, Hapus Produk</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

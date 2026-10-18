@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   QrCode, Camera, Keyboard, Play, Square,
-  CheckCircle, XCircle, PartyPopper, AlertTriangle,
+  CheckCircle, XCircle, AlertTriangle,
   History, MapPin,
 } from 'lucide-react'
 
@@ -184,9 +184,7 @@ export default function ScanPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
             <div style={{ flexShrink: 0 }}>
               {result.success
-                ? result.isCompleted
-                  ? <PartyPopper size={28} color="#34d399" />
-                  : <CheckCircle size={28} color="#34d399" />
+                ? <CheckCircle size={28} color="#34d399" />
                 : <XCircle size={28} color="#f87171" />}
             </div>
             <div style={{ flex: 1 }}>

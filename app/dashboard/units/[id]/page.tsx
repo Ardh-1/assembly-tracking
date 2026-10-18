@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { use, useState } from 'react'
 import {
   XCircle, RotateCcw, AlertTriangle, CheckCircle,
-  X, Loader2, ArrowLeft, QrCode
+  X, Loader2, ArrowLeft, QrCode, Clock, Settings,
+  Download, ClipboardList, FileText, Check, Minus,
 } from 'lucide-react'
 
 // Next.js 15: params adalah Promise, gunakan React.use() untuk unwrap
@@ -18,14 +19,18 @@ async function fetchUnit(id: string) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string; icon: string }> = {
-    PENDING:     { label: 'Pending',  cls: 'badge-muted',   icon: '⏳' },
-    IN_PROGRESS: { label: 'Proses',   cls: 'badge-info',    icon: '⚙️' },
-    COMPLETED:   { label: 'Selesai',  cls: 'badge-success', icon: '✅' },
-    REJECTED:    { label: 'Ditolak',  cls: 'badge-danger',  icon: '❌' },
+  const map: Record<string, { label: string; cls: string; Icon: any }> = {
+    PENDING:     { label: 'Pending',  cls: 'badge-muted',   Icon: Clock },
+    IN_PROGRESS: { label: 'Proses',   cls: 'badge-info',    Icon: Settings },
+    COMPLETED:   { label: 'Selesai',  cls: 'badge-success', Icon: CheckCircle },
+    REJECTED:    { label: 'Ditolak',  cls: 'badge-danger',  Icon: XCircle },
   }
-  const s = map[status] || { label: status, cls: 'badge-muted', icon: '?' }
-  return <span className={`badge ${s.cls}`} style={{ fontSize: '0.8rem', padding: '0.35rem 0.8rem' }}>{s.icon} {s.label}</span>
+  const s = map[status] || { label: status, cls: 'badge-muted', Icon: Clock }
+  return (
+    <span className={`badge ${s.cls}`} style={{ fontSize: '0.8rem', padding: '0.35rem 0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+      <s.Icon size={13} /> {s.label}
+    </span>
+  )
 }
 
 function RejectModal({
@@ -203,7 +208,9 @@ export default function UnitDetailPage({ params }: { params: Promise<{ id: strin
   if (error || !data?.unit) {
     return (
       <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>❌</div>
+        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+          <XCircle size={48} color="#ef4444" />
+        </div>
         <p>Unit tidak ditemukan</p>
         <Link href="/dashboard/units" className="btn btn-outline" style={{ marginTop: '1rem', display: 'inline-flex' }}>← Kembali</Link>
       </div>
@@ -270,9 +277,9 @@ export default function UnitDetailPage({ params }: { params: Promise<{ id: strin
                 href={`/api/qr/${unit.serialNumber}?format=png`}
                 download
                 className="btn btn-outline"
-                style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
               >
-                📥 QR Code
+                <Download size={14} /> QR Code
               </a>
 
               {canManageStatus && !isRejected && (
@@ -340,7 +347,9 @@ export default function UnitDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Tracking timeline */}
       <div className="card">
-        <h2 className="section-title" style={{ marginBottom: '1.5rem' }}>📋 Riwayat Tracking</h2>
+        <h2 className="section-title" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ClipboardList size={20} /> Riwayat Tracking
+        </h2>
         {unit.trackingLogs?.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>Belum ada riwayat scan</p>
         ) : (
@@ -362,7 +371,7 @@ export default function UnitDetailPage({ params }: { params: Promise<{ id: strin
                   fontSize: '0.8rem', zIndex: 1,
                   boxShadow: `0 0 12px ${log.status === 'SUCCESS' ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
                 }}>
-                  {log.status === 'SUCCESS' ? '✓' : log.status === 'ERROR' ? '✗' : '—'}
+                  {log.status === 'SUCCESS' ? <Check size={16} color="white" /> : log.status === 'ERROR' ? <X size={16} color="white" /> : <Minus size={16} color="white" />}
                 </div>
                 {/* Content */}
                 <div style={{ flex: 1, paddingBottom: '0.5rem' }}>
@@ -382,17 +391,17 @@ export default function UnitDetailPage({ params }: { params: Promise<{ id: strin
                       {new Date(log.scannedAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                    Operator: {log.operator?.name}
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <span>Operator: {log.operator?.name}</span>
                     {log.durationSeconds && (
-                      <span style={{ marginLeft: '0.75rem', color: 'var(--text-muted)' }}>
-                        ⏱ {Math.round(log.durationSeconds / 60)} menit
+                      <span style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Clock size={12} /> {Math.round(log.durationSeconds / 60)} menit
                       </span>
                     )}
                   </div>
                   {log.notes && (
-                    <div style={{ fontSize: '0.78rem', color: '#f59e0b', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                      📝 {log.notes}
+                    <div style={{ fontSize: '0.78rem', color: '#f59e0b', marginTop: '0.25rem', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <FileText size={13} /> {log.notes}
                     </div>
                   )}
                 </div>

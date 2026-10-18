@@ -161,8 +161,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: isLastStation
-        ? `🎉 Unit ${serialNumber} selesai diproses!`
-        : `✅ Unit ${serialNumber} berhasil di-scan di ${targetStation.stationName}`,
+        ? `Unit ${serialNumber} selesai diproses!`
+        : `Unit ${serialNumber} berhasil di-scan di ${targetStation.stationName}`,
       unit: updatedUnit,
       trackingLog,
       isCompleted: isLastStation,

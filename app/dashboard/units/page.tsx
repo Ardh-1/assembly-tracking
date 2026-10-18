@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react'
 import {
   Package, Clock, Settings, CheckCircle, XCircle,
   Plus, QrCode, Eye, Download, X, AlertTriangle,
-  Loader2, PartyPopper, Inbox,
+  Loader2, Inbox,
 } from 'lucide-react'
 
 async function fetchUnits(params = '') {
@@ -322,7 +322,7 @@ export default function UnitsPage() {
       {/* New unit success */}
       {newUnit && (
         <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
-          <PartyPopper size={16} />
+          <CheckCircle size={16} />
           <div>
             <strong>Unit berhasil didaftarkan!</strong>
             <div style={{ fontSize: '0.82rem', marginTop: '0.25rem' }}>
