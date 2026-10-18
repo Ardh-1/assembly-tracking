@@ -1,8 +1,13 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { use } from 'react'
+import { use, useState } from 'react'
+import {
+  XCircle, RotateCcw, AlertTriangle, CheckCircle,
+  X, Loader2, ArrowLeft, QrCode
+} from 'lucide-react'
 
 // Next.js 15: params adalah Promise, gunakan React.use() untuk unwrap
 
@@ -23,12 +28,167 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`badge ${s.cls}`} style={{ fontSize: '0.8rem', padding: '0.35rem 0.8rem' }}>{s.icon} {s.label}</span>
 }
 
+function RejectModal({
+  unit,
+  onClose,
+  onSuccess,
+}: {
+  unit: any
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [reason, setReason] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/units/${unit.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'REJECTED', reason }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Gagal menolak unit')
+        return
+      }
+      onSuccess()
+    } catch {
+      setError('Koneksi gagal ke server')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="card"
+        style={{ maxWidth: '440px', width: '100%', border: '1px solid rgba(239, 68, 68, 0.4)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3
+          style={{
+            fontWeight: 700,
+            marginBottom: '1rem',
+            fontSize: '1.1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            color: '#ef4444',
+          }}
+        >
+          <XCircle size={20} /> Tolak Unit Produksi
+        </h3>
+
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+          Anda akan mengubah status unit <strong style={{ color: '#e8eef7' }}>{unit.serialNumber}</strong> menjadi{' '}
+          <span style={{ color: '#ef4444', fontWeight: 600 }}>DITOLAK (REJECTED)</span>. Unit tidak akan dapat dipindai lagi di stasiun perakitan.
+        </p>
+
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+            <AlertTriangle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="label">Alasan Penolakan / Catatan Defect</label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="Contoh: Komponen rusak, cacat fisik perakitan, gagal uji fungsi..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              style={{ resize: 'vertical' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              type="submit"
+              className="btn btn-danger"
+              disabled={loading}
+              style={{ flex: 1, justifyContent: 'center' }}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Memproses...
+                </>
+              ) : (
+                <>
+                  <XCircle size={15} /> Konfirmasi Tolak
+                </>
+              )}
+            </button>
+            <button type="button" onClick={onClose} className="btn btn-outline">
+              <X size={15} /> Batal
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function UnitDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const { data: session } = useSession()
+  const qc = useQueryClient()
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['unit', id],
     queryFn: () => fetchUnit(id),
   })
+
+  const canManageStatus = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPERVISOR'
+
+  const handleRestore = async (unit: any) => {
+    if (!confirm(`Pulihkan status unit "${unit.serialNumber}" agar dapat diproses kembali di lini perakitan?`)) return
+    setRestoring(true)
+    try {
+      const nextStatus = unit.currentSequence > 0 ? 'IN_PROGRESS' : 'PENDING'
+      const res = await fetch(`/api/units/${unit.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: nextStatus,
+          reason: 'Status dipulihkan kembali oleh Supervisor/Admin',
+        }),
+      })
+      const resData = await res.json()
+      if (!res.ok) {
+        alert(resData.error || 'Gagal memulihkan status unit')
+        return
+      }
+      qc.invalidateQueries({ queryKey: ['unit', id] })
+      qc.invalidateQueries({ queryKey: ['units'] })
+    } catch {
+      alert('Koneksi gagal ke server')
+    } finally {
+      setRestoring(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -51,6 +211,7 @@ export default function UnitDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   const { unit } = data
+  const isRejected = unit.status === 'REJECTED'
   const pct = unit.product ? Math.round((unit.currentSequence / unit.product.totalStations) * 100) : 0
   const totalTime = unit.trackingLogs?.reduce((sum: number, l: any) => sum + (l.durationSeconds || 0), 0) || 0
   const totalMinutes = Math.round(totalTime / 60)
@@ -59,11 +220,37 @@ export default function UnitDetailPage({ params }: { params: Promise<{ id: strin
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       {/* Back */}
       <Link href="/dashboard/units" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginBottom: '1.25rem' }}>
-        ← Kembali ke Daftar Unit
+        <ArrowLeft size={15} /> Kembali ke Daftar Unit
       </Link>
 
+      {/* Alert jika unit Ditolak */}
+      {isRejected && (
+        <div
+          className="alert alert-error"
+          style={{
+            marginBottom: '1rem',
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem',
+            padding: '1rem',
+            borderRadius: '12px',
+          }}
+        >
+          <XCircle size={22} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ flex: 1 }}>
+            <strong style={{ color: '#ef4444', fontSize: '0.95rem' }}>Unit ini berstatus DITOLAK (REJECTED)</strong>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}>
+              Unit ini dihentikan dari lini produksi dan QR code tidak dapat dipindai di stasiun manapun.
+              {canManageStatus && ' Sebagai Supervisor/Admin, Anda dapat memulihkan status unit jika diperlukan.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header card */}
-      <div className="card" style={{ marginBottom: '1rem', background: 'linear-gradient(135deg, #1a2235, #1e2a42)' }}>
+      <div className="card" style={{ marginBottom: '1rem', background: isRejected ? 'linear-gradient(135deg, #2b181b, #1e2230)' : 'linear-gradient(135deg, #1a2235, #1e2a42)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
@@ -78,14 +265,44 @@ export default function UnitDetailPage({ params }: { params: Promise<{ id: strin
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
             <StatusBadge status={unit.status} />
-            <a
-              href={`/api/qr/${unit.serialNumber}?format=png`}
-              download
-              className="btn btn-outline"
-              style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
-            >
-              📥 QR Code
-            </a>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <a
+                href={`/api/qr/${unit.serialNumber}?format=png`}
+                download
+                className="btn btn-outline"
+                style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+              >
+                📥 QR Code
+              </a>
+
+              {canManageStatus && !isRejected && (
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  className="btn btn-danger"
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', gap: '0.3rem' }}
+                >
+                  <XCircle size={14} /> Tolak Unit
+                </button>
+              )}
+
+              {canManageStatus && isRejected && (
+                <button
+                  onClick={() => handleRestore(unit)}
+                  disabled={restoring}
+                  className="btn btn-outline"
+                  style={{
+                    fontSize: '0.78rem',
+                    padding: '0.35rem 0.75rem',
+                    borderColor: '#10b981',
+                    color: '#10b981',
+                    gap: '0.3rem',
+                  }}
+                >
+                  {restoring ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                  Pulihkan Unit
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -184,6 +401,20 @@ export default function UnitDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         )}
       </div>
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <RejectModal
+          unit={unit}
+          onClose={() => setShowRejectModal(false)}
+          onSuccess={() => {
+            setShowRejectModal(false)
+            qc.invalidateQueries({ queryKey: ['unit', id] })
+            qc.invalidateQueries({ queryKey: ['units'] })
+          }}
+        />
+      )}
     </div>
   )
 }
+

@@ -80,7 +80,7 @@ Lihat panduan lengkap di [walkthrough.md](walkthrough.md).
 | POST | `/api/scan` | Scan QR + validasi urutan stasiun |
 | GET | `/api/qr/[serial]` | Generate QR Code |
 | GET/POST | `/api/units` | List & register unit |
-| GET | `/api/units/[id]` | Detail + history unit |
+| GET/PATCH | `/api/units/[id]` | Detail + history unit & update status (reject / pulihkan) |
 | GET/POST | `/api/stations` | Manajemen stasiun |
 | GET/POST | `/api/products` | Manajemen produk |
 | GET | `/api/reports/realtime` | Dashboard real-time |

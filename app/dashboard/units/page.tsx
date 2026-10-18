@@ -138,12 +138,134 @@ function RegisterModal({ products, onClose, onSuccess }: any) {
   )
 }
 
+function RejectModal({
+  unit,
+  onClose,
+  onSuccess,
+}: {
+  unit: any
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [reason, setReason] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/units/${unit.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'REJECTED', reason }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Gagal menolak unit')
+        return
+      }
+      onSuccess()
+    } catch {
+      setError('Koneksi gagal ke server')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="card"
+        style={{ maxWidth: '440px', width: '100%', border: '1px solid rgba(239, 68, 68, 0.4)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3
+          style={{
+            fontWeight: 700,
+            marginBottom: '1rem',
+            fontSize: '1.1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            color: '#ef4444',
+          }}
+        >
+          <XCircle size={20} /> Tolak Unit Produksi
+        </h3>
+
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+          Anda akan mengubah status unit <strong style={{ color: '#e8eef7' }}>{unit.serialNumber}</strong> menjadi{' '}
+          <span style={{ color: '#ef4444', fontWeight: 600 }}>DITOLAK (REJECTED)</span>. Unit tidak akan dapat dipindai lagi di stasiun perakitan.
+        </p>
+
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+            <AlertTriangle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="label">Alasan Penolakan / Catatan Defect</label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="Contoh: Komponen rusak, cacat fisik perakitan, gagal uji fungsi..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              style={{ resize: 'vertical' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              type="submit"
+              className="btn btn-danger"
+              disabled={loading}
+              style={{ flex: 1, justifyContent: 'center' }}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Memproses...
+                </>
+              ) : (
+                <>
+                  <XCircle size={15} /> Konfirmasi Tolak
+                </>
+              )}
+            </button>
+            <button type="button" onClick={onClose} className="btn btn-outline">
+              <X size={15} /> Batal
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function UnitsPage() {
   const { data: session } = useSession()
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState('')
   const [showQR, setShowQR] = useState<any>(null)
   const [showRegister, setShowRegister] = useState(false)
+  const [rejectUnit, setRejectUnit] = useState<any>(null)
   const [newUnit, setNewUnit] = useState<any>(null)
 
   const queryParams = statusFilter ? `?status=${statusFilter}` : ''
@@ -294,6 +416,22 @@ export default function UnitsPage() {
                           <button onClick={() => setShowQR(u)} className="btn btn-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', gap: '0.3rem' }}>
                             <QrCode size={13} /> QR
                           </button>
+                          {canRegister && u.status !== 'REJECTED' && (
+                            <button
+                              onClick={() => setRejectUnit(u)}
+                              className="btn btn-outline"
+                              style={{
+                                padding: '0.35rem 0.65rem',
+                                fontSize: '0.78rem',
+                                gap: '0.3rem',
+                                color: '#ef4444',
+                                borderColor: 'rgba(239, 68, 68, 0.35)',
+                              }}
+                              title="Tolak Unit"
+                            >
+                              <XCircle size={13} /> Tolak
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -314,6 +452,16 @@ export default function UnitsPage() {
           onSuccess={(unit: any) => {
             setShowRegister(false)
             setNewUnit(unit)
+            qc.invalidateQueries({ queryKey: ['units'] })
+          }}
+        />
+      )}
+      {rejectUnit && (
+        <RejectModal
+          unit={rejectUnit}
+          onClose={() => setRejectUnit(null)}
+          onSuccess={() => {
+            setRejectUnit(null)
             qc.invalidateQueries({ queryKey: ['units'] })
           }}
         />
