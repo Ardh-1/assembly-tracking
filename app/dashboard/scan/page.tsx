@@ -82,7 +82,7 @@ export default function ScanPage() {
     try {
       const { Html5Qrcode } = await import('html5-qrcode')
       if (scannerRef.current) {
-        await scannerRef.current.stop().catch(() => {})
+        await scannerRef.current.stop().catch(() => { })
       }
       const scanner = new Html5Qrcode('qr-reader')
       scannerRef.current = scanner
@@ -94,10 +94,10 @@ export default function ScanPage() {
           try {
             const parsed = JSON.parse(decodedText)
             if (parsed.sn) serial = parsed.sn
-          } catch {}
+          } catch { }
           await processScan(serial)
         },
-        () => {}
+        () => { }
       )
       setIsScanning(true)
       setResult(null)
@@ -109,7 +109,7 @@ export default function ScanPage() {
 
   const stopScanner = useCallback(async () => {
     if (scannerRef.current) {
-      try { await scannerRef.current.stop() } catch {}
+      try { await scannerRef.current.stop() } catch { }
       scannerRef.current = null
     }
     setIsScanning(false)
@@ -170,6 +170,65 @@ export default function ScanPage() {
           </p>
         )}
       </div>
+
+      {/* Result feedback */}
+      {result && (
+        <div style={{
+          padding: '1.25rem',
+          borderRadius: '12px',
+          border: `2px solid ${resultBorder}`,
+          background: resultBg,
+          marginBottom: '1rem',
+          animation: 'slideIn 0.3s ease',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+            <div style={{ flexShrink: 0 }}>
+              {result.success
+                ? result.isCompleted
+                  ? <PartyPopper size={28} color="#34d399" />
+                  : <CheckCircle size={28} color="#34d399" />
+                : <XCircle size={28} color="#f87171" />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem',
+                color: result.success ? '#34d399' : '#f87171',
+              }}>
+                {result.success ? 'BERHASIL' : 'GAGAL'}
+              </div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                {result.message || result.error}
+              </div>
+              {result.progress && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Progress Unit</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                      {result.progress.current}/{result.progress.total} stasiun ({result.progress.percentage}%)
+                    </span>
+                  </div>
+                  <div className="progress-bar" style={{ height: '8px' }}>
+                    <div
+                      className={`progress-fill ${result.progress.percentage === 100 ? 'complete' : ''}`}
+                      style={{
+                        width: `${result.progress.percentage}%`,
+                        background: result.progress.percentage === 100
+                          ? 'linear-gradient(90deg, #10b981, #059669)'
+                          : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              {result.unit && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Serial: <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{result.unit.serialNumber}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mode switcher */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -268,65 +327,6 @@ export default function ScanPage() {
               </button>
             </div>
           </form>
-        </div>
-      )}
-
-      {/* Result feedback */}
-      {result && (
-        <div style={{
-          padding: '1.25rem',
-          borderRadius: '12px',
-          border: `2px solid ${resultBorder}`,
-          background: resultBg,
-          marginBottom: '1rem',
-          animation: 'slideIn 0.3s ease',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-            <div style={{ flexShrink: 0 }}>
-              {result.success
-                ? result.isCompleted
-                  ? <PartyPopper size={28} color="#34d399" />
-                  : <CheckCircle size={28} color="#34d399" />
-                : <XCircle size={28} color="#f87171" />}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem',
-                color: result.success ? '#34d399' : '#f87171',
-              }}>
-                {result.success ? 'BERHASIL' : 'GAGAL'}
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                {result.message || result.error}
-              </div>
-              {result.progress && (
-                <div style={{ marginTop: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Progress Unit</span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                      {result.progress.current}/{result.progress.total} stasiun ({result.progress.percentage}%)
-                    </span>
-                  </div>
-                  <div className="progress-bar" style={{ height: '8px' }}>
-                    <div
-                      className={`progress-fill ${result.progress.percentage === 100 ? 'complete' : ''}`}
-                      style={{
-                        width: `${result.progress.percentage}%`,
-                        background: result.progress.percentage === 100
-                          ? 'linear-gradient(90deg, #10b981, #059669)'
-                          : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-              {result.unit && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Serial: <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{result.unit.serialNumber}</span>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
 
