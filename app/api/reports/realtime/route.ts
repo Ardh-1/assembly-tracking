@@ -29,21 +29,36 @@ export async function GET(request: NextRequest) {
     prisma.assemblyUnit.count({ where: { status: 'REJECTED' } }),
   ])
 
-  // Progress per unit (untuk tabel)
+  // Unit aktif (untuk tabel): 10 unit yang terakhir berubah.
+  // "Terakhir berubah" = waktu tracking log terbaru (scan / tolak / pulihkan),
+  // atau waktu registrasi bila unit belum punya log.
+  const latest = await prisma.$queryRaw<{ id: string; last_activity: Date }[]>`
+    SELECT u.id,
+           GREATEST(u.registered_at, COALESCE(MAX(t.scanned_at), u.registered_at)) AS last_activity
+    FROM assembly_units u
+    LEFT JOIN tracking_logs t ON t.unit_id = u.id
+    WHERE u.status IN ('IN_PROGRESS', 'PENDING')
+    GROUP BY u.id
+    ORDER BY last_activity DESC
+    LIMIT 10
+  `
+  const lastActivityById = new Map(latest.map((r) => [r.id, r.last_activity]))
+
   const units = await prisma.assemblyUnit.findMany({
-    where: { status: { in: ['IN_PROGRESS', 'PENDING'] } },
+    where: { id: { in: latest.map((r) => r.id) } },
     include: {
       product: { select: { totalStations: true, productName: true } },
       currentStation: { select: { stationName: true, sequenceOrder: true } },
     },
-    orderBy: { registeredAt: 'desc' },
-    take: 20,
   })
 
-  const unitsWithProgress = units.map((u) => ({
-    ...u,
-    progressPercent: Math.round((u.currentSequence / u.product.totalStations) * 100),
-  }))
+  const unitsWithProgress = units
+    .map((u) => ({
+      ...u,
+      lastActivityAt: lastActivityById.get(u.id) ?? u.registeredAt,
+      progressPercent: Math.round((u.currentSequence / u.product.totalStations) * 100),
+    }))
+    .sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())
 
   return NextResponse.json({
     stationCounts: stationCounts.map((s) => ({

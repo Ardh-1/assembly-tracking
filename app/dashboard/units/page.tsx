@@ -1,14 +1,107 @@
 'use client'
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import {
   Package, Clock, Settings, CheckCircle, XCircle,
   Plus, QrCode, Eye, Download, X, AlertTriangle,
-  Loader2, Inbox,
+  Loader2, Inbox, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-react'
+
+const PAGE_SIZE_OPTIONS = [20, 40, 80]
+
+/** Hasilkan daftar nomor halaman dengan elipsis, mis. [1, '…', 4, 5, 6, '…', 12] */
+function getPageList(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '…')[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  if (start > 2) pages.push('…')
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (end < total - 1) pages.push('…')
+  pages.push(total)
+  return pages
+}
+
+function Pagination({
+  page, totalPages, total, limit, isFetching, onPageChange, onLimitChange,
+}: {
+  page: number
+  totalPages: number
+  total: number
+  limit: number
+  isFetching: boolean
+  onPageChange: (p: number) => void
+  onLimitChange: (l: number) => void
+}) {
+  const from = total === 0 ? 0 : (page - 1) * limit + 1
+  const to = Math.min(page * limit, total)
+  const navBtn: React.CSSProperties = {
+    padding: '0.35rem 0.55rem', fontSize: '0.8rem', minWidth: '34px', justifyContent: 'center',
+  }
+
+  return (
+    <div
+      id="units-pagination"
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: '1rem', flexWrap: 'wrap', padding: '0.9rem 1.25rem',
+        borderTop: '1px solid var(--border, rgba(255,255,255,0.08))',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+        <label htmlFor="units-page-size">Tampilkan</label>
+        <select
+          id="units-page-size"
+          className="input"
+          value={limit}
+          onChange={(e) => onLimitChange(Number(e.target.value))}
+          style={{ width: 'auto', minWidth: '68px', padding: '0.35rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer' }}
+        >
+          {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+        <span>baris</span>
+        <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+          Menampilkan <strong style={{ color: 'var(--text-primary, inherit)' }}>{from}–{to}</strong> dari <strong style={{ color: 'var(--text-primary, inherit)' }}>{total}</strong>
+          {isFetching && <Loader2 size={13} className="animate-spin" />}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
+        <button id="units-page-first" className="btn btn-outline" style={navBtn} disabled={page <= 1} onClick={() => onPageChange(1)} title="Halaman pertama">
+          <ChevronsLeft size={14} />
+        </button>
+        <button id="units-page-prev" className="btn btn-outline" style={navBtn} disabled={page <= 1} onClick={() => onPageChange(page - 1)} title="Sebelumnya">
+          <ChevronLeft size={14} />
+        </button>
+        {getPageList(page, totalPages).map((p, i) =>
+          p === '…' ? (
+            <span key={`e${i}`} style={{ padding: '0 0.3rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>…</span>
+          ) : (
+            <button
+              key={p}
+              id={`units-page-${p}`}
+              className={`btn ${p === page ? 'btn-primary' : 'btn-outline'}`}
+              style={navBtn}
+              onClick={() => onPageChange(p)}
+              aria-current={p === page ? 'page' : undefined}
+            >
+              {p}
+            </button>
+          )
+        )}
+        <button id="units-page-next" className="btn btn-outline" style={navBtn} disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} title="Berikutnya">
+          <ChevronRight size={14} />
+        </button>
+        <button id="units-page-last" className="btn btn-outline" style={navBtn} disabled={page >= totalPages} onClick={() => onPageChange(totalPages)} title="Halaman terakhir">
+          <ChevronsRight size={14} />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 async function fetchUnits(params = '') {
   const res = await fetch(`/api/units${params}`)
@@ -263,18 +356,35 @@ export default function UnitsPage() {
   const { data: session } = useSession()
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(PAGE_SIZE_OPTIONS[0])
   const [showQR, setShowQR] = useState<any>(null)
   const [showRegister, setShowRegister] = useState(false)
   const [rejectUnit, setRejectUnit] = useState<any>(null)
   const [newUnit, setNewUnit] = useState<any>(null)
 
-  const queryParams = statusFilter ? `?status=${statusFilter}` : ''
-  const { data, isLoading } = useQuery({
-    queryKey: ['units', statusFilter],
-    queryFn: () => fetchUnits(queryParams),
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (statusFilter) params.set('status', statusFilter)
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['units', statusFilter, page, limit],
+    queryFn: () => fetchUnits(`?${params.toString()}`),
     refetchInterval: 20000,
+    placeholderData: keepPreviousData,
   })
   const { data: productsData } = useQuery({ queryKey: ['products'], queryFn: fetchProducts })
+
+  const total: number = data?.total || 0
+  const totalPages = Math.max(1, data?.totalPages || 1)
+
+  // Jika data berkurang (mis. setelah filter/refresh) dan halaman melebihi total, mundur ke halaman terakhir
+  useEffect(() => {
+    if (data && page > totalPages) setPage(totalPages)
+  }, [data, page, totalPages])
+
+  const changePage = (p: number) => {
+    setPage(Math.min(Math.max(1, p), totalPages))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const units = data?.units || []
   const products = productsData?.products || []
@@ -309,7 +419,7 @@ export default function UnitsPage() {
         ].map(({ value, label, Icon }) => (
           <button
             key={value}
-            onClick={() => setStatusFilter(value)}
+            onClick={() => { setStatusFilter(value); setPage(1) }}
             className={`btn ${statusFilter === value ? 'btn-primary' : 'btn-outline'}`}
             style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
@@ -440,6 +550,17 @@ export default function UnitsPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {!isLoading && total > 0 && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            limit={limit}
+            isFetching={isFetching}
+            onPageChange={changePage}
+            onLimitChange={(l) => { setLimit(l); setPage(1) }}
+          />
         )}
       </div>
 

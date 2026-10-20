@@ -2,6 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { formatDistanceToNow } from 'date-fns'
+import { id as localeId } from 'date-fns/locale'
 import {
   Package, Clock, Settings, CheckCircle, XCircle,
   QrCode, PlusCircle, Factory, AlertTriangle, Activity,
@@ -224,10 +226,15 @@ export default function DashboardPage() {
       {/* Active Units Table */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h2 className="section-title">
-            <Activity size={18} />
-            Unit Aktif
-          </h2>
+          <div>
+            <h2 className="section-title">
+              <Activity size={18} />
+              Unit Aktif
+            </h2>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+              10 unit yang terakhir berubah
+            </p>
+          </div>
           <Link href="/dashboard/units" style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', textDecoration: 'none' }}>
             Lihat semua →
           </Link>
@@ -250,6 +257,7 @@ export default function DashboardPage() {
                   <th>Stasiun Saat Ini</th>
                   <th>Status</th>
                   <th>Progress</th>
+                  <th>Terakhir Berubah</th>
                 </tr>
               </thead>
               <tbody>
@@ -269,6 +277,12 @@ export default function DashboardPage() {
                     <td><StatusBadge status={u.status} /></td>
                     <td style={{ minWidth: '140px' }}>
                       <ProgressBar value={u.currentSequence} max={u.product?.totalStations || 5} />
+                    </td>
+                    <td
+                      style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}
+                      title={new Date(u.lastActivityAt).toLocaleString('id-ID')}
+                    >
+                      {formatDistanceToNow(new Date(u.lastActivityAt), { addSuffix: true, locale: localeId })}
                     </td>
                   </tr>
                 ))}
